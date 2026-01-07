@@ -1,0 +1,409 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load filtros %}
+
+{% block content %}
+<div class="container-fluid mt-2">
+    <h4 class="mb-3 text-center">Consulta de Pedidos</h4>
+
+    <!-- Formulario de búsqueda -->
+    <form method="get" class="d-flex justify-content-center gap-2">
+        <input type="text" id="searchInput" class="form-control small-input input-black w-50" placeholder="Buscar el cliente..."
+            style="height: 30px;">
+        <button class="btn btn-primary btn-sm" type="submit" style="height: 30px;"><i class="bi bi-search"></i></button>
+    </form>
+
+    <!-- Tabla de choferes -->
+    <div class="table-scroll mt-2">
+        <table class="table table-hover table-bordered" id="clienteTable">
+            <thead class="text-center size_head">
+                <tr>
+                    <th>Fecha</th>
+                    <th>FV</th>
+                    <th>Pedido</th>
+                    <th>Status</th>
+                    <th>F</th>
+                    <th>IdCliente</th>
+                    <th>Cliente</th>
+                    <th>Ciudad</th>
+                    <th>Estado</th>
+                    <th>Ruta</th>
+                    <th>IdVendedor</th>
+                    {% if es_staff %}
+                        <th>Vendedor</th>
+                    {% endif %}
+                    <th>Total</th>
+                    <th>Total Venta</th>
+                    <th>Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pedido in pedidos %}
+                <tr class="text-center size_body pedido-row" data-idpedido="{{ pedido.id }}">
+                    <td>{{ pedido.fecha }}</td>
+                    <td>{{ pedido.folio_venta }}</td>
+                    <td>{{ pedido.id }}</td>
+                    <td>
+                        <span class="status-badge 
+                            {% if pedido.status == 'ENVIADO' %}status-enviado
+                            {% elif pedido.status == 'RECIBIDO' %}status-recibido
+                            {% elif pedido.status == 'VENTA' %}status-venta
+                            {% elif pedido.status == 'CANCELADO' %}status-cancelado
+                            {% endif %}">
+                            
+                            <span class="status-dot"></span>
+                            {{ pedido.status }}
+                        </span>
+                    </td>
+                    <td>{{ pedido.folio_factura }}</td>
+                    <td>{{ pedido.idcliente }}</td>
+                    <td style="text-align: left;">{{ pedido.razon_social }}</td>
+                    <td>{{ pedido.ciudad }}</td>
+                    <td>{{ pedido.estado }}</td>
+                    <td>{{ pedido.ruta }}</td>
+                    <td>{{ pedido.idvend }}</td>
+                    {% if es_staff %}
+                        <td>{{ pedido.vendedor }}</td>
+                    {% endif %}
+                    <td style="text-align: right;">{{ pedido.total|money_es }} </td>
+                    <td style="text-align: right;">{{ pedido.total_venta|money_es }}</td>
+                    <td style="text-align: right;">{{ pedidos.saldo_total|money_es }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="text-center text-muted">No se encontraron resultados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mensaje de búsqueda -->
+    {% if list_pedidos %}
+    <div class="alert alert-info text-center mt-3">
+        Mostrando resultados para: <strong>{{ list_pedidos }}</strong>
+    </div>
+    {% endif %}
+</div>
+<!-- MODAL PRODUCTOS DEL PEDIDO -->
+<div class="modal fade" id="modalProductos" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <!-- HEADER -->
+      <div class="modal-header bg-primary text-white">
+        <div>
+          <h5 class="mb-0" id="modalCliente">Cliente</h5>
+          <small id="modalInfoPedido">Fecha | Vendedor</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- BODY -->
+      <div class="modal-body">
+
+        <h6 class="text-center mb-3 fw-bold">
+          Lista de productos en el pedido
+        </h6>
+
+        <!-- PRODUCTOS -->
+        <div id="productosPedidoBody"></div>
+
+       <!-- OBSERVACIONES + TOTALES -->
+        <div class="row g-2 mt-2 justify-content-end text-center">
+
+            <!-- OBSERVACIONES -->
+            <div class="col-md-5" hidden>
+                <textarea
+                    class="form-control"
+                    id="observacionesPedido"
+                    placeholder="Observaciones del pedido"
+                    readonly hidden>
+                </textarea>
+            </div>
+
+            <!-- IEPS -->
+            <div class="col-md-1">
+                <div class="resumen-label">IEPS 6%</div>
+                <div class="resumen-value" id="ieps">0</div>
+            </div>
+
+            <!-- IVA -->
+            <div class="col-md-1">
+                <div class="resumen-label">IVA 16%</div>
+                <div class="resumen-value" id="iva">0</div>
+            </div>
+
+            <!-- TOTAL D1 -->
+            <div class="col-md-1">
+                <div class="resumen-label">Total D1</div>
+                <div class="resumen-value" id="totalD1">0</div>
+            </div>
+
+            <!-- TOTAL D2 -->
+            <div class="col-md-1">
+                <div class="resumen-label">Total D2</div>
+                <div class="resumen-value" id="totalD2">0</div>
+            </div>
+
+            <!-- TOTAL A PAGAR -->
+            <div class="col-md-3">
+                <div class="border border-success rounded">
+                <div class="resumen-label text-success">
+                    TOTAL A PAGAR
+                </div>
+                <div class="fs-4 fw-bold text-success" id="totalPedido">
+                    $0.00
+                </div>
+                </div>
+            </div>
+        </div>
+
+
+      </div>
+
+      <!-- FOOTER -->
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* =========================
+       FILTRO DE BÚSQUEDA
+    ========================== */
+    const searchInput = document.getElementById("searchInput");
+    const tableRows = document.querySelectorAll("#clienteTable tbody tr");
+
+    searchInput.addEventListener("keyup", function () {
+        const filter = searchInput.value.toLowerCase();
+        tableRows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            row.style.display = rowText.includes(filter) ? "" : "none";
+        });
+    });
+
+
+    /* =========================
+       MODAL PRODUCTOS PEDIDO
+    ========================== */
+
+    // FUNCION QUE LE DA FORMATO A LAS CIFRAS GRANDES 
+    function money_es(value) {
+        let number = parseFloat(value);
+        if (isNaN(number)) return value;
+        return number.toLocaleString('es-MX', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    const modalElement = document.getElementById("modalProductos");
+    const modal = new bootstrap.Modal(modalElement);
+
+    const productosBody = document.getElementById("productosPedidoBody");
+    const modalCliente = document.getElementById("modalCliente");
+    const modalInfoPedido = document.getElementById("modalInfoPedido");
+    const observacionesPedido = document.getElementById("observacionesPedido");
+    const totalPedidoEl = document.getElementById("totalPedido");
+
+    document.querySelectorAll(".pedido-row").forEach(row => {
+
+        row.addEventListener("click", function () {
+
+            const idpedido = this.dataset.idpedido;
+            if (!idpedido) return;
+
+            productosBody.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="bi bi-arrow-repeat"></i> Cargando productos...
+                </div>
+            `;
+
+            fetch(`/pedidos/detalle_pedidos/${idpedido}/`)
+                .then(response => response.json())
+                .then(data => {
+
+                    productosBody.innerHTML = "";
+                    let totalPedido = 0;
+
+                    if (!data || data.length === 0) {
+                        productosBody.innerHTML = `
+                            <div class="text-center text-muted">
+                                No hay productos en este pedido
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    // HEADER DEL MODAL
+                    modalCliente.innerText = data[0].razon_social || "Cliente";
+                    modalInfoPedido.innerText =
+                        `${data[0].fecha || ""} ${data[0].vendedor || ""}`;
+
+                    observacionesPedido.value =
+                        data[0].observaciones || "";
+                        
+                    // PRODUCTOS
+                    data.forEach(p => {
+
+                        totalPedido += Number(p.subtotal);
+
+                        productosBody.innerHTML += `
+                            <div class="border rounded p-3 mb-3 bg-light">
+
+                                <div class="fw-bold">
+                                    ${p.codigo} | ${p.nombre} | ${p.presentacion} | ${p.descripcion} | ${p.linea} 
+                                </div>
+                                
+                                <div class="row mt-2">
+                                    <div class="row">
+                                        <input class="form-control form-control fw-bold"
+                                            value="${p.prod_detalle}" placeholder="Observacion del Producto" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-1 g-2 text-center">
+
+                                    <div class="col mt-4 mb-0">
+                                        <small>Pedido</small>
+                                    </div>
+
+                                    <div class="col">
+                                        <small>Unitario</small>
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${money_es(p.precio_unitario)}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <small class="text-info">Cant</small>
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${money_es(p.cantidad)}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <small class="text-success">Bon</small>
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${p.bonificacion}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <small class="text-success">D1 %</small>
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${p.d1}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <small class="text-success">D2 %</small>
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${p.d2}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <small>Subtotal</small>
+                                        <input class="form-control form-control-sm text-center fw-bold"
+                                               value="${money_es(p.subtotal)}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <small>Importe</small>
+                                        <input class="form-control form-control-sm text-center fw-bold"
+                                               value="${money_es(p.importe)}" readonly>
+                                    </div>
+
+                                </div>
+
+                                <div class="row mt-1 g-2 text-center">
+
+                                    <div class="col mt-2">
+                                        <small>Autorizado: </small>
+                                    </div>
+
+                                    <div class="col mt-2">
+                                        <small></small>
+                                    </div>
+
+                                    <div class="col">
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${p.aprobado}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${p.bon_aprobada}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${p.d1_aprobado}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <input class="form-control form-control-sm text-center"
+                                               value="${p.d2_aprobado}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <input class="form-control form-control-sm text-center fw-bold"
+                                               value="${money_es(p.subtotal_aprobado)}" readonly>
+                                    </div>
+
+                                    <div class="col">
+                                        <input class="form-control form-control-sm text-center fw-bold"
+                                               value="${money_es(p.importe_aprobado)}" readonly>
+                                    </div>
+
+                                </div>
+                            </div>
+                        `;
+                    });
+
+
+                    document.getElementById("ieps").innerText =
+                        `$${money_es(data[0].total_ieps)}`;
+
+                    document.getElementById("iva").innerText =
+                        `$${money_es(data[0].total_iva)}`;
+
+                    document.getElementById("totalD1").innerText =
+                        `$${data[0].d1_venta}`;
+
+                    document.getElementById("totalD2").innerText =
+                        `$${data[0].d2_venta}`;
+
+                    document.getElementById("totalPedido").innerText =
+                        `$${money_es(data[0].total_venta)}`;
+
+
+                    modal.show();
+
+                    totalPedidoEl.innerText = `$${money_es(totalPedido)}`;
+
+                })
+                .catch(() => {
+                    productosBody.innerHTML = `
+                        <div class="text-center text-danger">
+                            Error al cargar productos
+                        </div>
+                    `;
+                });
+
+            modal.show();
+        });
+
+    });
+
+});
+</script>
+
+
+
+{% endblock %}

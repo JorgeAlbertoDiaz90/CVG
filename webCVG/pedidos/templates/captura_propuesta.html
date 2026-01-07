@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<div class="container-fluid mt-3">
+
+    <!-- BOTÓN VOLVER -->
+    <!-- <div class="d-flex justify-content-end mb-2">
+        <a href="{% url 'lista_cliente' %}" class="btn btn-outline-primary btn-sm rounded-circle p-2">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+    </div> -->
+
+    <!-- TARJETA PRINCIPAL -->
+    <div class="card card-modern">
+        <div class="card-body">
+
+            <!-- DATOS DEL CLIENTE -->
+            <h5 class="mb-3 fw-bold text-primary">Información del Pedido</h5>
+
+            <div class="row g-3">
+
+                <div class="col-md-2">
+                    <label class="label-title">Fecha:</label>
+                    <input class="form-control input-black" value="{{ pedido.fecha|default:fecha_hoy|date:'d/m/Y H:i:s' }}" readonly>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="label-title">RFC:</label>
+                    <input class="form-control input-black" value="{{ clientes.rfc }}">
+                </div>
+
+                <div class="col-md-1">
+                    <label class="label-title">Cliente:</label>
+                    <input class="form-control input-black" value="{{ clientes.idcliente }}">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="label-title">Nombre:</label>
+                    <input class="form-control input-black" value="{{ clientes.razon_social }}">
+                </div>
+
+                <div class="col-md-1">
+                    <label class="label-title">Ruta:</label>
+                    <input class="form-control input-black" value="{{ clientes.ruta }}">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="label-title">Evento:</label>
+                    <select class="form-select input-black">
+                        {% for e in evento %}
+                            <option value="{{ e.1 }}" {% if pedido and pedido.evento == e.1 %}selected{% endif %}>{{ e.1 }} - {{ e.0 }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="form-floatting">
+                    <textarea class="form-control input-black" placeholder="Observaciones del Pedido">{{ pedido.observaciones|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <!-- BUSCADOR -->
+            <div class="mt-4">
+                <input id="buscador" type="text" class="form-control input-black"
+                       placeholder="Buscar producto por nombre o código…">
+                <div id="resultados" class="resultados-busqueda mt-1"></div>
+            </div>
+
+            <!-- TABLA DE PRODUCTOS -->
+            <div class="table-responsive mt-2">
+                <table class="table table-bordered table-products text-center" id="tabla-producto">
+                    <colgroup>
+                        <col style="width:40%">
+                        <col style="width:2%;">
+                        <col style="width:2%;">
+                        <col style="width:8%">
+                        <col style="width:8%">
+                        <col style="width:8%">
+                        <col style="width:4%">
+                        <col style="width:4%">
+                        <col style="width:10%">
+                        <col style="width:10%">
+                        <col style="width:2%">
+                    </colgroup>
+
+                    <thead>
+                        <tr>
+                            <th colspan="1">Producto</th>
+                            <th></th>
+                            <th></th>
+                            <th>Unitario</th>
+                            <th>Cant.</th>
+                            <th>Bon.</th>
+                            <th>D1%</th>
+                            <th>D2%</th>
+                            <th>Subtotal</th>
+                            <th>Importe</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- TOTAL -->
+            <div class="d-flex flex-row-reverse bd-highlight">
+                <div class="total-box">
+                    TOTAL: $<span id="totalGeneral">0.00</span>
+                </div>
+            </div>
+            <div class="d-flex justify-content-between mt-3">
+                <div class="text-end mt-3">
+                    <button class="btn btn-success" onclick="guardarPedido()">
+                        <i class="bi bi-save"></i> Guardar Pedido
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL COMENTARIO PRODUCTO -->
+<div class="modal fade" id="modalComentario" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-historico">
+
+            <!-- HEADER -->
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title d-flex align-items-center gap-2">
+                    <i class="bi bi-chat-left-text fs-4"></i>
+                    Observaciones del producto
+                </h5>
+                <button type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body">
+
+                <label class="form-label small text-muted mb-1">
+                    Comentario
+                </label>
+
+                <textarea id="comentarioProducto"
+                          class="form-control comentario-textarea"
+                          rows="5"
+                          placeholder="Escribe aquí una observación para este producto..."></textarea>
+
+                <div class="form-text mt-2">
+                    Este comentario se guardará junto al producto en el pedido.
+                </div>
+            </div>
+
+            <!-- FOOTER -->
+            <div class="modal-footer justify-content-between">
+                <button class="btn btn-outline-secondary btn-sm"
+                        data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+
+                <button class="btn btn-success btn-sm"
+                        onclick="guardarComentario()">
+                    <i class="bi bi-check-lg"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL HISTORICO DEL PRODUCTO -->
+<div class="modal fade" id="modalHistorico" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-historico">
+
+            <!-- HEADER -->
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history fs-4"></i>
+                    Histórico del producto
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body">
+
+                <div class="table-responsive">
+                    <table class="table table-borderless table-hover align-middle text-nowrap historico-table">
+
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Idcliente</th>
+                                <th class="d-none d-md-table-cell">Cliente</th>
+                                <th>Código</th>
+                                <th class="d-none d-md-table-cell">Producto</th>
+                                <th>Precio</th>
+                                <th>Cant.</th>
+                                <th class="d-none d-lg-table-cell">Bon</th>
+                                <th class="d-none d-lg-table-cell">D1</th>
+                                <th class="d-none d-lg-table-cell">D2</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="tablaHistorico">
+                            <!-- JS -->
+                        </tbody>
+
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="modal-footer justify-content-between small text-muted">
+                <span>
+                    <i class="bi bi-info-circle"></i>
+                    Precios históricos del cliente
+                </span>
+                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
+                    Cerrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% if productos %}
+<script>
+const productosPedido = {{ productos|safe }};
+productosPedido.forEach(p => agregarProductoExistente(p));
+</script>
+{% endif %}
+
+
+<script>
+// =====================================================
+// VARIABLES GLOBALES
+// =====================================================
+let filaActualComentario = null;
+
+// FUNCION QUE LE DA FORMATO A LAS CIFRAS GRANDES 
+function money_es(value) {
+    let number = parseFloat(value);
+    if (isNaN(number)) return value;
+    return number.toLocaleString('es-MX', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// =====================================================
+// BUSCADOR DE PRODUCTOS
+// =====================================================
+const buscador = document.getElementById("buscador");
+const resultados = document.getElementById("resultados");
+
+buscador.addEventListener("keyup", function () {
+    let query = this.value.trim();
+
+    if (query.length < 1) {
+        resultados.innerHTML = "";
+        return;
+    }
+
+    fetch("{% url 'buscar_productos' %}?q=" + encodeURIComponent(query))
+        .then(r => r.json())
+        .then(data => {
+
+            if (data.length === 0) {
+                resultados.innerHTML = `
+                    <div class="list-group-item text-muted">
+                        No se encontraron productos
+                    </div>`;
+                return;
+            }
+
+            let html = "";
+
+            data.forEach(p => {
+                html += `
+                    <button type="button"
+                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                        onclick="agregarProducto(
+                            '${p.codigo}',
+                            '${p.nombre}',
+                            '${p.presentacion}',
+                            '${p.publico}'
+                        )">
+
+                        <div>
+                            <strong>${resaltar(p.codigo)} - ${resaltar(p.nombre, query)} - ${p.presentacion}</strong><br>
+                            <small class="text-muted">
+                                ${resaltar(p.linea, query)} | ${p.descripcion} | I.V.A: ${p.iva} | I.E.P.S: ${p.ieps}
+                            </small>
+                        </div>
+
+                        <span class="badge bg-success fs-6">
+                            $${money_es(p.publico)}
+                        </span>
+                    </button>`;
+            });
+
+            resultados.innerHTML = html;
+        });
+});
+
+// Resalta el texto buscado
+function resaltar(texto, busqueda) {
+    let regex = new RegExp(`(${busqueda})`, "ig");
+    return texto.replace(regex, `<mark>$1</mark>`);
+}
+
+// =====================================================
+// AGREGAR PRODUCTO
+// =====================================================
+
+
+function agregarProducto(codigo, nombre, presentacion, publico) {
+    let tbody = document.querySelector("#tabla-producto tbody");
+
+    let fila = document.createElement("tr");
+    fila.setAttribute("data-comentario", "");
+
+    fila.innerHTML = `
+        <td>${codigo} - ${nombre}</td>
+
+        <td>
+            <button class="btn btn-sm btn-info"
+                    onclick="abrirModalHistorico(this)">
+                <i class="bi bi-card-list"></i>
+            </button>
+        </td>
+
+        <td>
+            <button class="btn btn-sm btn-warning"
+                    onclick="abrirModalComentario(this)">
+                <i class="bi bi-chat-left-text"></i>
+            </button>
+        </td>
+
+        <td>
+            <input class="form-control form-control-sm precio"
+                   data-valor="${publico}"
+                   value="${money_es(publico)}"
+                   readonly>
+        </td>
+
+        <td>
+            <input class="form-control form-control-sm cantidad"
+                   value="1"
+                   onchange="calcularFila(this)">
+        </td>
+
+        <td>
+            <input class="form-control form-control-sm bon"
+                   value="0"
+                   onchange="calcularFila(this)">
+        </td>
+
+        <td>
+            <input class="form-control form-control-sm d1"
+                   value="0"
+                   onchange="calcularFila(this)">
+        </td>
+
+        <td>
+            <input class="form-control form-control-sm d2"
+                   value="0"
+                   onchange="calcularFila(this)">
+        </td>
+
+        <td class="subtotal">${money_es(0)}</td>
+        <td class="importe">${money_es(0)}</td>
+
+        <td>
+            <button class="btn btn-sm btn-danger"
+                    onclick="this.closest('tr').remove(); calcularTotalGeneral();">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </td>
+    `;
+
+    tbody.appendChild(fila);
+
+    // Recalcula con el valor correcto
+    calcularFila(fila.querySelector(".cantidad"));
+
+    // Limpia buscador
+    document.getElementById("resultados").innerHTML = "";
+    document.getElementById("buscador").value = "";
+}
+
+// =====================================================
+// ABRIR MODAL DE COMENTARIO
+// =====================================================
+function abrirModalComentario(btn) {
+    filaActualComentario = btn.closest("tr");
+
+    let comentario =
+        filaActualComentario.getAttribute("data-comentario") || "";
+
+    document.getElementById("comentarioProducto").value = comentario;
+
+    let modal = new bootstrap.Modal(
+        document.getElementById("modalComentario")
+    );
+    modal.show();
+}
+
+
+// =====================================================
+// GUARDAR COMENTARIO DEL MODAL
+// =====================================================
+function guardarComentario() {
+    let texto = document.getElementById("comentarioProducto").value;
+
+    filaActualComentario.setAttribute("data-comentario", texto);
+
+    let btnChat =
+        filaActualComentario.querySelector("button.btn-warning");
+
+    btnChat.classList.toggle("btn-warning", texto.trim() !== "");
+
+    bootstrap.Modal.getInstance(
+        document.getElementById("modalComentario")
+    ).hide();
+}
+
+// =====================================================
+// ABRIR MODAL DE HISTORICO
+// =====================================================
+function abrirModalHistorico(btn) {
+    let tr = btn.closest("tr");
+    let codigo = tr.cells[0].innerText.split(" - ")[0];
+
+    fetch(`{% url 'historico_producto' %}?idcliente={{ clientes.idcliente }}&codigo=${codigo}`)
+        .then(r => r.json())
+        .then(data => {
+            let tbody = document.getElementById("tablaHistorico");
+            tbody.innerHTML = "";
+
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-muted">
+                            Sin historial de ventas
+                        </td>
+                    </tr>`;
+            } else {
+                data.forEach(h => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${h.fecha}</td>
+                            <td>${h.pedido}</td>
+                            <td>${h.razon_social}</td>
+                            <td>${h.clave}</td>
+                            <td>${h.nombre}</td>
+                            <td>$${money_es(h.precio)}</td>
+                            <td>${h.cantidad}</td>
+                            <td>${h.bonificacion}</td>
+                            <td>${h.d1}%</td>
+                            <td>${h.d2}%</td>
+                            <td class="text-end">$${money_es(h.subtotal)}</td>
+                        </tr>`;
+                });
+            }
+
+            new bootstrap.Modal(
+                document.getElementById("modalHistorico")
+            ).show();
+        });
+}
+
+// =====================================================
+// CALCULAR SUBTOTAL / IMPORTE POR FILA
+// =====================================================
+function calcularFila(el) {
+    let tr = el.closest("tr");
+
+    let precio = parseFloat(
+        tr.querySelector(".precio").dataset.valor
+    ) || 0;
+
+    let cant = parseFloat(tr.querySelector(".cantidad").value) || 0;
+    let d1   = parseFloat(tr.querySelector(".d1").value) || 0;
+    let d2   = parseFloat(tr.querySelector(".d2").value) || 0;
+
+    let subtotal = precio * cant;
+
+    let desc1 = subtotal * (d1 / 100);
+    let desc2 = subtotal * (d2 / 100);
+
+    let importe = subtotal - desc1 - desc2;
+
+    // Mostrar FORMATEADO
+    tr.querySelector(".subtotal").innerText = money_es(subtotal);
+    tr.querySelector(".importe").innerText  = money_es(importe);
+
+    calcularTotalGeneral();
+}
+
+
+// =====================================================
+// TOTAL GENERAL
+// =====================================================
+function calcularTotalGeneral() {
+    let total = 0;
+
+    document.querySelectorAll(".importe").forEach(el => {
+        let valor = el.innerText.replace(/,/g, '');
+        total += parseFloat(valor) || 0;
+    });
+
+    document.getElementById("totalGeneral").innerText = money_es(total);
+}
+
+// ====================================================
+// MANDAR DATOS PARA LA DB
+// ====================================================
+function guardarPedido() {
+
+    let filas = document.querySelectorAll("#tabla-producto tbody tr");
+
+    if (filas.length === 0) {
+        alert("Agrega al menos un producto");
+        return;
+    }
+
+    let pedido = {
+        idcliente: "{{ clientes.idcliente }}",
+        ruta: "{{ clientes.ruta }}",
+        evento: document.querySelector("select").value,
+        observaciones: document.querySelector(
+            "textarea[placeholder='Observaciones del Pedido']"
+        ).value,
+        total: document.getElementById("totalGeneral").innerText.replace(/,/g, ''),
+        productos: []
+    };
+
+    filas.forEach(tr => {
+        pedido.productos.push({
+            codigo: tr.cells[0].innerText.split(" - ")[0],
+            nombre: tr.cells[0].innerText.split(" - ")[1],
+            precio: tr.querySelector(".precio").value.replace(/,/g, ''),
+            cantidad: tr.querySelector(".cantidad").value,
+            d1: tr.querySelector(".d1").value,
+            d2: tr.querySelector(".d2").value,
+            subtotal: tr.querySelector(".subtotal").innerText.replace(/,/g, ''),
+            importe: tr.querySelector(".importe").innerText.replace(/,/g, ''),
+            comentario: tr.getAttribute("data-comentario")
+        });
+    });
+
+    fetch("{% url 'guardar_pedido' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(pedido)
+    })
+    .then(r => r.json())
+    .then(resp => {
+        if (resp.ok) {
+            alert("Pedido guardado con folio " + resp.id_pedido);
+            window.location.href = "{% url 'lista_cliente' %}";
+        } else {
+            alert("Error al guardar pedido");
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("Error de comunicación con el servidor");
+    });
+}
+
+function agregarProductoExistente(p) {
+    agregarProducto(p.codigo, p.nombre, "", p.precio);
+
+    let fila = document.querySelector("#tabla-producto tbody tr:last-child");
+
+    fila.querySelector(".cantidad").value = p.cantidad;
+    fila.querySelector(".d1").value = p.d1;
+    fila.querySelector(".d2").value = p.d2;
+    fila.setAttribute("data-comentario", p.comentario || "");
+
+    calcularFila(fila.querySelector(".cantidad"));
+}
+
+
+</script>
+
+{% endblock %}

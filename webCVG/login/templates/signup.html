@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<main class="container d-flex justify-content-center align-items-start py-5">
+  <div class="row justify-content-center w-100">
+    <div class="col-md-6 col-lg-6">
+      <div class="card shadow-lg rounded-4 p-4">
+        <div class="card-body">
+          <h2 class="text-center fw-bold text-primary mb-4">
+            <img src="{% static 'images/COVEGUSA.png' %}" 
+                style="height: 96px; width: auto;">
+          </h2>
+
+          <!-- Pestañas de Login y Registro -->
+          <ul class="nav nav-pills nav-justified mb-3">
+            <li class="nav-item">
+              <a class="nav-link active" id="tab-login" data-bs-toggle="pill" href="#pills-login">Iniciar Sesión</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" id="tab-register" data-bs-toggle="pill" href="#pills-register">Registrarse</a>
+            </li>
+          </ul>
+
+          <!-- Contenido de las pestañas -->
+          <div class="tab-content">
+            <!-- Login Form -->
+            <div class="tab-pane fade show active" id="pills-login">
+              {% if error %}
+                <div class="alert alert-danger text-center">
+                  {{ error }}
+                </div>
+              {% endif %}
+
+              <form action="/signin/" method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label for="username" class="form-label fw-bold">Usuario:</label>
+                  <input type="text" name="username" class="form-control" placeholder="Ingresa tu usuario" required>
+                </div>
+
+                <div class="mb-3">
+                  <label for="password" class="form-label fw-bold">Contraseña:</label>
+                  <input type="password" name="password" class="form-control" placeholder="Ingresa tu contraseña" required>
+                </div>
+
+                <button class="btn btn-primary btn-lg w-100">
+                    Iniciar Sesión
+                </button>
+              </form>
+            </div>
+
+            <!-- Registro Form -->
+            <div class="tab-pane fade" id="pills-register">
+              <form action="{% url 'enchiladas' %}" method="POST">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                  <label for="username" class="form-label fw-bold">Usuario:</label>
+                  <input type="text" name="username" class="form-control" placeholder="Ingresa tu usuario" required>
+                </div>
+              
+                <div class="mb-3">
+                  <label for="password1" class="form-label fw-bold">Contraseña:</label>
+                  <input type="password" name="password1" class="form-control" placeholder="Ingresa tu contraseña" required>
+                </div>
+              
+                <div class="mb-3">
+                  <label for="password2" class="form-label fw-bold">Confirmar Contraseña:</label>
+                  <input type="password" name="password2" class="form-control" placeholder="Repite tu contraseña" required>
+                </div>
+              
+                <button class="btn btn-primary btn-lg w-100">
+                   Registrarse
+                </button>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<main class="container py-5 text-center">
+    <section class="card shadow-lg mx-auto" style="max-width: 600px;">
+        <div class="card-body">
+            <h1 class="display-3 text-primary mb-4">Bienvenido</h1>
+            <p class="lead text-muted mb-4">
+                Para poder comenzar a hacer uso del sistema, porfavor da clic en el boton <strong>Comenzar</strong> y disfruta de la experiencia.
+            </p>
+            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                <a class="btn btn-primary btn-lg" href="/signin/">
+                    Comenzar
+                </a>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

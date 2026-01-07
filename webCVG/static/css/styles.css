@@ -1,0 +1,345 @@
+
+/* Fuentes */
+@font-face {
+    font-family: 'Franklin Gothic Demi Cond';
+    src: url('../fonts/FRADMCN.TTF') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'Franklin Gothic Demi Cond', sans-serif;
+    font-size: 15px;
+}
+
+/* Color de los campos */
+.input-purple {
+    color: rgb(61, 0, 61);
+    border: 2px solid purple;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(128, 0, 128, 0.5);
+}
+
+.input-purple:focus {
+    outline: none;
+    border-color: #800080;
+    box-shadow: 0 0 8px rgba(128, 0, 128, 0.8);
+}
+  
+.input-black {
+    color: black;
+    border: 2px solid black;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.input-black:focus {
+    outline: none;
+    border-color: #000000;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Tamaño de fuente */
+.small-input {
+    font-size: 0.75rem;
+    height: 30px;
+}
+.small-label{
+    font-size: 0.75rem;
+}
+.small-text {
+    font-size: 0.75rem;
+    color: rgb(61, 0, 61);;
+}
+.small-input_w {
+    width: 40px !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+}
+.small-input_w_1 {
+    width: 60px !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+}
+.size_head {
+    font-size: smaller;
+}
+.size_body {
+    font-size: smaller;
+}
+
+/* Formato a tabla del formulario de productos */
+.table input {
+    min-width: 80px;
+}
+.table th, .table td {
+    vertical-align: middle;
+}
+
+/* Tabla para hacer scroll en la tabla de clientes */
+
+.table-scroll {
+        max-height: 650px;     /* Ajusta la altura a lo que necesites */
+        overflow-y: auto;      /* Scroll vertical solo dentro de la tabla */
+        overflow-x: auto;      /* Scroll horizontal si la tabla es muy ancha */
+        border: 1px solid #ddd;
+    }
+
+    /* Para que la cabecera quede fija */
+    .table-scroll thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: #343a40;  /* Color del header */
+        color: white;
+    }
+
+/* Estilos para la interfaz de informacion de pedido */
+
+/* ------ ESTILO GENERAL ------ */
+    .card-modern {
+        border: none !important;
+        border-radius: 14px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+
+    .label-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #6c757d;
+    }
+
+    .input-clean {
+        background: #f8f9fa !important;
+        border: 1px solid #dee2e6 !important;
+        height: 38px;
+        border-radius: 6px;
+    }
+
+    .input-clean:focus {
+        background: white !important;
+        border-color: #0d6efd !important;
+        box-shadow: 0 0 6px rgba(13,110,253,0.2);
+    }
+
+    /* ------ BUSCADOR ------ */
+    #buscador {
+        height: 40px;
+        border-radius: 50px;
+        padding-left: 18px;
+        font-size: 15px;
+    }
+
+    #resultados {
+        max-height: 210px;
+        overflow-y: auto;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    #resultados button {
+        border: none;
+        padding: 10px 14px;
+        font-size: 14px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    #resultados button:hover {
+        background: #f8f9fa;
+    }
+
+    /* ------ TABLA ------ */
+    .table-products th {
+        background: #0d6efd !important;
+        color: white !important;
+        font-size: 13px;
+        vertical-align: middle;
+    }
+
+    .table-products td {
+        font-size: 13px;
+        vertical-align: middle;
+    }
+
+    .table-products input {
+        text-align: center;
+        font-size: 13px;
+    }
+
+    /* ------ TOTAL ------ */
+    .total-box {
+        background: #fff0f0;
+        border: 2px solid #dc3545;
+        padding: 15px 20px;
+        border-radius: 12px;
+        font-size: 26px;
+        font-weight: 700;
+        color: #dc3545;
+    }
+
+    /* Barra de busqueda de captura de propuesta organizacion de datos */
+    #resultados .list-group-item {
+        cursor: pointer;
+    }
+
+    #resultados .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    mark {
+        background-color: #fff3cd;
+        padding: 0 2px;
+    }
+
+    /* ===== MODAL COMENTARIO ===== */
+
+    .comentario-textarea {
+        resize: none;
+        border-radius: 10px;
+        font-size: 0.9rem;
+    }
+
+    .comentario-textarea:focus {
+        box-shadow: 0 0 0 .2rem rgba(13,110,253,.25);
+        border-color: #0d6efd;
+    }
+
+
+    /* ===== MODAL HISTORICO ===== */
+
+    .modal-historico {
+        border-radius: 14px;
+        box-shadow: 0 20px 40px rgba(0,0,0,.25);
+    }
+
+    .historico-table thead th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #6c757d;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .historico-table tbody tr {
+        transition: background .2s ease;
+    }
+
+    .historico-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .historico-table td {
+        font-size: 0.85rem;
+    }
+
+    .historico-table td:last-child {
+        font-weight: 600;
+        color: #198754;
+    }
+
+    /* Precio */
+    .historico-table td.precio {
+        color: #0d6efd;
+        font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .modal-historico .modal-body {
+            padding: .75rem;
+        }
+    }
+
+/* status del pedido */
+
+    .status-badge {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .status-enviado {
+        background-color: #e3f2fd;
+        color: #0d6efd;
+    }
+    .status-enviado .status-dot {
+        background-color: #0d6efd;
+    }
+
+    .status-recibido {
+        background-color: #fff3cd;
+        color: #fd7e14;
+    }
+    .status-recibido .status-dot {
+        background-color: #fd7e14;
+    }
+
+    .status-venta {
+        background-color: #e6f4ea;
+        color: #198754;
+    }
+    .status-venta .status-dot {
+        background-color: #198754;
+    }
+
+    .status-cancelado {
+        background-color: #fdecea;
+        color: #dc3545;
+    }
+    .status-cancelado .status-dot {
+        background-color: #dc3545;
+    }
+
+/* diseño de la barra de navegacion */
+
+/* NAV LINKS */
+.navbar .nav-link {
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.navbar .nav-link:hover {
+    color: #e0e7ff !important;
+}
+
+/* DROPDOWN */
+.dropdown-menu {
+    border-radius: 12px;
+    border: none;
+}
+
+.dropdown-item {
+    border-radius: 8px;
+    padding: 8px 14px;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f5f9;
+}
+
+/* AVATAR USUARIO */
+.avatar-circle {
+    width: 32px;
+    height: 32px;
+    background: #2563eb;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}

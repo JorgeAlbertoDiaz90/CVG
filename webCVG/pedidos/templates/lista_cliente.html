@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-2">
+    <h4 class="mb-3 text-center">Selecciona el Cliente</h4>
+
+    <!-- Formulario de búsqueda -->
+    <form method="get" class="d-flex justify-content-center gap-2">
+        <input type="text" id="searchInput" class="form-control small-input input-black w-50" placeholder="Buscar el cliente..."
+            style="height: 30px;">
+        <button class="btn btn-primary btn-sm" type="submit" style="height: 30px;"><i class="bi bi-search"></i></button>
+    </form>
+
+    <!-- Tabla de choferes -->
+    <div class="table-scroll mt-2">
+        <table class="table table-hover table-bordered" id="clienteTable">
+            <thead class="table-dark text-center size_head">
+                <tr>
+                    <th>Rfc</th>
+                    <th>Ide - Idvend</th>
+                    <!-- <th>Blq</th> -->
+                    <th>Cliente</th>
+                    <th>id</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cliente in clientes %}
+                <tr class="text-center size_body" data-idcliente="{{ cliente.idcliente }}">
+                    <td>{{ cliente.rfc }}</td>
+                    <td>{{ cliente.ide }} - {{ cliente.idvend }}</td>
+                    <td style="text-align: left;">{{ cliente.razon_social }}</td>
+                    <!-- <td>{{ cliente. }} </td> -->
+                    <td>{{ cliente.idcliente }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="11" class="text-center text-muted">No se encontraron resultados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Mensaje de búsqueda -->
+    {% if list_cliente %}
+    <div class="alert alert-info text-center mt-3">
+        Mostrando resultados para: <strong>{{ list_cliente }}</strong>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const table = document.getElementById("clienteTable");
+
+        // Filtrado de búsqueda
+        const searchInput = document.getElementById("searchInput");
+        const tableRows = document.querySelectorAll("#clienteTable tbody tr");
+
+        searchInput.addEventListener("keyup", function () {
+            const filter = searchInput.value.toLowerCase();
+            tableRows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                row.style.display = rowText.includes(filter) ? "" : "none";
+            });
+        });
+
+        // 🚀 Redirección directa al seleccionar un cliente
+        table.addEventListener("click", function (event) {
+            const row = event.target.closest("tr");
+            if (!row || !row.dataset.idcliente) return;
+
+            const idcliente = row.dataset.idcliente;
+
+            // Redirigir inmediatamente
+            window.location.href = `/pedidos/captura_propuesta/${idcliente}/`;
+        });
+    });
+
+    // Atajo de teclado ALT + N
+    document.addEventListener("keydown", function (event) {
+        if (event.altKey && event.key.toLowerCase() === "n") {
+            event.preventDefault();
+            const btn = document.getElementById("btnCaptura");
+            if (btn) {
+                window.location.href = btn.href;
+            }
+        }
+    });
+</script>
+
+{% endblock %}
