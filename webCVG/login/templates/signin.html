@@ -2,56 +2,52 @@
 {% load static %}
 {% block content %}
 
-<main class="container-fluid d-flex justify-content-center min-vh-80">
+<main class="container d-flex justify-content-center align-items-start py-5">
   <div class="row justify-content-center w-100">
-    <div class="col-md-5 col-lg-4">
+    <div class="col-md-6 col-lg-6">
+      <div class="card shadow-lg rounded-4 p-4">
+        <div class="card-body">
+          <h2 class="text-center fw-bold text-primary mb-4">
+            <img src="{% static 'images/COVEGUSA.png' %}" 
+                style="height: 96px; width: auto;">
+          </h2>
 
-      <div class="card shadow-lg rounded-4 border-0">
-        <div class="card-body p-4">
 
-          <!-- LOGO -->
-          <div class="text-center mb-4">
-            <img src="{% static 'images/COVEGUSA.png' %}"
-                 alt="COVEGUSA"
-                 style="height: 90px;">
+          <!-- Contenido de las pestañas -->
+          <div class="tab-content">
+            <!-- Login Form -->
+            <div class="tab-pane fade show active" id="pills-login">
+              {% if error %}
+                <div class="alert alert-danger text-center">
+                  {{ error }}
+                </div>
+              {% endif %}
+
+              <form action="/signin/" method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                  <label for="username" class="form-label fw-bold">Usuario:</label>
+                  <input type="text" name="username" class="form-control" placeholder="Ingresa tu usuario" required>
+                </div>
+
+                <div class="mb-3">
+                  <label for="password" class="form-label fw-bold">Contraseña:</label>
+                  <input type="password" name="password" class="form-control" placeholder="Ingresa tu contraseña" required>
+                </div>
+
+                <button class="btn btn-primary btn-lg w-100">
+                    Iniciar Sesión
+                </button>
+
+                <p class="text-center mt-3 small">
+                Acceso solamente para Personal Autorizado
+                </p>
+              </form>
+            </div>
           </div>
-
-          {% if error %}
-            <div class="alert alert-danger text-center small">
-              <i class="bi bi-exclamation-circle me-1"></i>
-              {{ error }}
-            </div>
-          {% endif %}
-
-          <!-- LOGIN FORM -->
-          <form method="post" action="{% url 'signin' %}">
-            {% csrf_token %}
-
-            <div class="mb-3">
-              <label class="form-label fw-medium">Usuario</label>
-              <input type="text" name="username" class="form-control"
-                     placeholder="Ingresa tu usuario" required>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-medium">Contraseña</label>
-              <input type="password" name="password" class="form-control"
-                     placeholder="Ingresa tu contraseña" required>
-            </div>
-
-            <button class="btn btn-primary w-100 py-2">
-              <i class="bi bi-box-arrow-in-right me-1"></i>
-              Iniciar sesión
-            </button>
-          </form>
-
-          <p class="text-center text-muted small mt-4">
-            Acceso exclusivo para personal autorizado
-          </p>
 
         </div>
       </div>
-
     </div>
   </div>
 </main>

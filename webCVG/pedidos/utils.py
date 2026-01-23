@@ -8,6 +8,11 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
+def get_catalogo_productos():
+    with connection.cursor() as cursor:
+        cursor.execute("CALL l_catalogos_productos()")
+        return dictfetchall(cursor)
+
 # MUESTRA LOS EVENTOS PARA PODER ASIGNARLOS DENTRO DEL PEDIDO
 def get_eventos(): 
     with connection.cursor() as cursor:
@@ -36,4 +41,77 @@ def get_catalogo_clientes(is_staff, idvend):
         cursor.execute("CALL l_clientes(%s, %s)", [is_staff, idvend])
         return dictfetchall(cursor)
      
+
+# --- MUESTRA LOS PEDIDOS QUE ESTAN ACTIVOS SIN ENVIAR ---
+
+def get_pedido_activo(idpedido, idvend, ide):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL c_pedido_activo(%s, %s, %s)",
+            [idpedido, idvend, ide]
+        )
+        rows = dictfetchall(cursor)
+        return rows[0] if rows else None
+
+# --- MUESTRA LO PRODUCTOS DEL PEDIDO QUE ESTA ACTIVO SIN ENVIAR ---
+
+def get_productos_pedido_activo(idpedido, ide):
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL c_pedido_productos_activo(%s, %s)",
+            [idpedido, ide]
+        )
+        return dictfetchall(cursor)
+
+
+def get_pedido_activo_global(idvend, ide):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            SELECT id
+            FROM _pedidos
+            WHERE idvend = %s
+              AND ide = %s
+              AND status = 'PENDIENTE'
+            ORDER BY id DESC
+            LIMIT 1
+        """, [idvend, ide])
+
+        row = cursor.fetchone()
+        return row[0] if row else None
+
+# --- PARA ESTE PROCEDIMIENTO SE REALIZA UNA ACTUALIZACION DE STATUS PARA QUE CAMBIE DE PENDIENTE A CANCELADO
+def cancelar_pedido(idpedido, idvend, ide):
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL c_cancelar_pedido(%s, %s, %s)",
+            [idpedido, idvend, ide]
+        )
+
+
+def get_productos_seleccionados(id_pedido):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+           SELECT
+                p.codigo,
+                p.nombre,
+                l.descripcion,
+                l.linea,
+                p.publico as precio_unitario
+            FROM _pedido_productos_tmp t
+            INNER JOIN _productos p ON p.codigo = t.codigo_producto
+            INNER JOIN _lineas l ON l.idcl = p.idcl
+            WHERE t.id_pedido = %s;
+        """, [id_pedido])
+        return dictfetchall(cursor)
+
+
+# ESTA TABLA ELIMINA LOS DATOS TEMPORALES
+def limpiar_productos_seleccion(idpedido):
+    with connection.cursor() as cursor:
+        cursor.execute("""
+            DELETE FROM _pedido_productos_tmp
+            WHERE id_pedido = %s
+        """, [idpedido])
+
 

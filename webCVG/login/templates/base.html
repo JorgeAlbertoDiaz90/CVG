@@ -51,11 +51,11 @@
                     </a>
                     <ul class="dropdown-menu shadow-sm">
                         <li><a class="dropdown-item" href="{% url 'productos' %}"><i class="bi bi-box"></i> Productos</a></li>
-                        <li><a class="dropdown-item" href="{% url 'lineas' %}"><i class="bi bi-diagram-3"></i> Líneas</a></li>
+                        <li><a class="dropdown-item" href="{% url 'lineas' %}"><i class="bi bi-flask"></i> Líneas</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'sucursales' %}">Sucursales</a></li>
-                        <li><a class="dropdown-item" href="{% url 'proveedores' %}">Proveedores</a></li>
-                        <li><a class="dropdown-item" href="{% url 'clientes' %}">Clientes</a></li>
+                        <!-- <li><a class="dropdown-item" href="{% url 'sucursales' %}">Sucursales</a></li> -->
+                        <!-- <li><a class="dropdown-item" href="{% url 'proveedores' %}">Proveedores</a></li> -->
+                        <li><a class="dropdown-item" href="{% url 'clientes' %}"><i class="bi bi-person"></i> Clientes</a></li>
                     </ul>
                 </li>
 
@@ -65,21 +65,9 @@
                         <i class="bi bi-cart-check me-1"></i> Pedidos
                     </a>
                     <ul class="dropdown-menu shadow-sm">
-                        <li><a class="dropdown-item" href="{% url 'lista_cliente' %}">Nuevo Pedido</a></li>
-                        <li><a class="dropdown-item" href="{% url 'consultar_pedidos' %}">Consultar Pedidos</a></li>
-                        <li><a class="dropdown-item" href="{% url 'consultar_cliente' %}">Consultar Clientes</a></li>
-                    </ul>
-                </li>
-
-                <!-- REPORTES -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
-                        <i class="bi bi-bar-chart me-1"></i> Reportes
-                    </a>
-                    <ul class="dropdown-menu shadow-sm">
-                        <li><a class="dropdown-item" href="#">Reporte de Visitas</a></li>
-                        <li><a class="dropdown-item" href="#">Reporte de Pedidos</a></li>
-                        <li><a class="dropdown-item" href="#">Productividad</a></li>
+                        <li><a class="dropdown-item" href="{% url 'lista_cliente' %}"><i class="bi bi-clipboard2-plus"></i> Nuevo Pedido</a></li>
+                        <li><a class="dropdown-item" href="{% url 'consultar_pedidos' %}"><i class="bi bi-card-checklist"></i> Consultar Pedidos</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="bi bi-hourglass-split"></i> Pedidos Pendientes</a></li>
                     </ul>
                 </li>
 
@@ -117,18 +105,14 @@
 
 <!-- PEDIDO ACTIVO GLOBAL -->
 {% if pedido_activo %}
-<div class="alert alert-warning sticky-top text-center rounded-0 mb-0">
-    <strong>Pedido en proceso</strong> #{{ pedido_activo }}
+<div class="alert alert-warning sticky-top text-center rounded-0 mb-0 d-flex justify-content-center align-items-center gap-2">
+    <strong class="me-2">Actualmente tienes un Pedido: #{{ pedido_activo }}</strong>
 
     <a href="{% url 'continuar_pedido' pedido_activo %}"
-       class="btn btn-primary btn-sm ms-2">
+       class="btn btn-primary btn-sm">
         <i class="bi bi-arrow-repeat"></i> Continuar
     </a>
 
-    <a href="{% url 'cancelar_pedido' pedido_activo %}"
-       class="btn btn-danger btn-sm ms-2">
-        <i class="bi bi-x-circle"></i> Cancelar
-    </a>
 </div>
 {% endif %}
 

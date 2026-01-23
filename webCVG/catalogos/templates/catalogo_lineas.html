@@ -25,9 +25,9 @@
             <tbody>
                 {% for linea in lineas %}
                 <tr class="text-left size_body" data-idcliente="{{ cliente.idcliente }}">
-                    <td style="text-align: center;">{{ linea.idcl }}</td>
-                    <td>{{ linea.descripcion }}</td>
-                    <td>{{ linea.linea }}</td>
+                    <td style="text-align: center; max-width: 1px;">{{ linea.idcl }}</td>
+                    <td style="max-width: 120px;">{{ linea.descripcion }}</td>
+                    <td style="max-width: 10px;">{{ linea.linea }}</td>
                 </tr>
                 {% empty %}
                 <tr>

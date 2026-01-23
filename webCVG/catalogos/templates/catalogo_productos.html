@@ -14,7 +14,7 @@
 
     <!-- Tabla de choferes -->
     <div class="table-scroll mt-2">
-        <table class="table table-hover table-bordered" id="clienteTable">
+        <table class="table table-hover table-bordered table-responsive-custom" id="clienteTable">
             <thead class="table-dark text-center size_head">
                 <tr>
                     <th>Código</th>
@@ -30,7 +30,7 @@
                 <tr class="text-left size_body" data-idcliente="{{ cliente.idcliente }}">
                     <td style="text-align: center;">{{ producto.codigo }}</td>
                     <td>{{ producto.nombre }}</td>
-                    <td>{{ producto.presentacion }}</td>
+                    <td style="max-width: 20px;">{{ producto.presentacion }}</td>
                     <td>{{ producto.linea }} - {{ producto.descripcion }}</td>
                     <td>{{ producto.iva }}</td>
                     <td>{{ producto.publico }}</td>

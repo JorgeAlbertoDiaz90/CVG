@@ -7,6 +7,10 @@
     font-style: normal;
 }
 
+html, body {
+  height: 100%;
+}
+
 body {
     font-family: 'Franklin Gothic Demi Cond', sans-serif;
     font-size: 15px;
@@ -343,3 +347,290 @@ body {
     font-weight: 600;
     font-size: 14px;
 }
+/* BOTONES DE BARRA DE BUSQUEDA DE NUEVO PEDIDO */
+
+/* ITEM */
+.product-item {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+/* TEXTO */
+.product-info strong {
+    font-size: 0.95rem;
+}
+
+.product-info small {
+    font-size: 0.8rem;
+}
+
+/* CONTENEDOR DERECHO */
+.product-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* PRECIO VERDE */
+.product-price-green {
+    min-width: 90px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border: 1px solid #badbcc;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* BOTÓN AZUL */
+.btn-add-blue {
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    border: none;
+    background-color: #0d6efd;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+/* ICONO */
+.btn-add-blue i {
+    font-size: 16px;
+}
+
+/* HOVER */
+.btn-add-blue:hover {
+    background-color: #0b5ed7;
+    transform: scale(1.05);
+}
+
+/* CLICK */
+.btn-add-blue:active {
+    transform: scale(0.95);
+}
+
+/* AQUI SERA AGREGADO LO RESPONSIVO */
+
+@media (max-width: 1024px) and (min-width: 768px) {
+
+    .table-scroll {
+        max-height: 500px;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+
+    .table-responsive-custom {
+        min-width: 1000px;   /* ESTO ES LO QUE FUERZA EL SCROLL */
+    }
+}
+
+
+/* =========================================
+   TABLET VERTICAL (PEDIDOS)
+========================================= */
+@media (max-width: 1024px) and (orientation: portrait) {
+
+    
+    /* =============================
+       MODAL HISTÓRICO MÁS ANCHO
+    ============================= */
+    .modal-historico-wide {
+        max-width: 98vw !important;
+        width: 98vw !important;
+        margin: 0 auto;
+    }
+
+    .modal-historico-wide .modal-content {
+        border-radius: 10px;
+    }
+
+    /* =============================
+       SCROLL HISTÓRICO
+    ============================= */
+    .historico-scroll {
+        max-height: 35vh;
+        overflow-y: auto;
+    }
+
+    .historico-table thead th {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 10;
+    }
+
+    /* SCROLL DE TABLA */
+    .table-scroll {
+        max-height: 900px;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+
+    .table-responsive-custom {
+        min-width: 1100px;
+    }
+
+    /* TEXTO GENERAL TABLA */
+    .table-responsive-custom th,
+    .table-responsive-custom td {
+        white-space: nowrap;
+        font-size: 0.9rem;
+    }
+
+    /* ===== CELDAS SIN ESPACIO ===== */
+    .table-products th,
+    .table-products td {
+        padding: 1px 2px !important;
+        vertical-align: middle;
+    }
+
+    .producto-nombre {
+        font-size: 0.8rem;
+    }
+
+    /* ===== INPUTS COMPACTOS ===== */
+    .table-products .form-control,
+    .table-products .form-control-sm {
+        margin: 0 !important;
+        height: 24px !important;
+        padding: 2px 3px !important;
+        font-size: 0.8rem;
+        line-height: 1;
+    }
+
+    /* ===== ANCHOS DE COLUMNAS ===== */
+
+    /* PRECIO */
+    .table-products .precio {
+        width: 65px !important;
+        min-width: 65px;
+        max-width: 65px;
+        text-align: right;
+    }
+
+    /* CANT / BON */
+    .table-products .cantidad,
+    .table-products .bon {
+        width: 40px !important;
+        min-width: 40px;
+        max-width: 40px;
+        text-align: center;
+    }
+
+    /* DESCUENTOS */
+    .table-products .d1,
+    .table-products .d2 {
+        width: 40px !important;
+        min-width: 40px;
+        max-width: 40px;
+        text-align: center;
+    }
+
+    /* SUBTOTAL / IMPORTE */
+    .table-products .subtotal-input,
+    .table-products .importe-input {
+        width: 65px !important;
+        min-width: 65px;
+        max-width: 65px;
+        text-align: right;
+    }
+
+    /* ===== PRODUCTO ===== */
+    .producto-nombre {
+        font-size: 0.7rem;
+        line-height: 1.1;
+        margin-bottom: 2px;
+    }
+
+    /* ===== BOTONES ACCIONES ===== */
+    .producto-acciones button {
+        padding: 2px 4px;
+        font-size: 0.7rem;
+    }
+}
+
+
+/* ESTE QUERY SE USARA DE FORMA HORIZONTAL LA TABLETA */
+
+@media (max-width: 1024px) and (orientation: landscape) {
+
+    .table-scroll {
+        max-height: 120px;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+
+    .table-responsive-custom {
+        min-width: 900px;
+    }
+}
+
+/* TABLA DE PRODUCTOS PARA CAPTURAD DE PROPUESTA */
+
+/* CONTENEDOR GENERAL */
+.productos-wrapper {
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+    background: #fff;
+}
+
+/* HEADER FIJO */
+.productos-header {
+    background: #e0e0e0;
+    padding: 8px;
+    font-size: 14px;
+    border-bottom: 1px solid #cfcfcf;
+}
+
+/* SCROLL INTERNO */
+.productos-body {
+    max-height: 320px;      /* ← aquí ganas espacio */
+    overflow-y: auto;
+}
+
+/* TABLA COMPACTA */
+.table-products th {
+    position: sticky;
+    top: 0;
+    background: #0d6efd;
+    color: white;
+    font-size: 12px;
+    padding: 6px;
+    z-index: 2;
+}
+
+.table-products td {
+    padding: 2px;
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+/* INPUTS PEQUEÑOS */
+.table-products input {
+    padding: 2px 2px;
+    font-size: 12px;
+    height: 26px;
+}
+
+/* BOTONES PEQUEÑOS */
+.table-products .btn {
+    padding: 2px 6px;
+    font-size: 12px;
+}
+
+.total-box {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding: 10px;
+    margin-top: 20px;
+    font-weight: bold;
+}
+
+

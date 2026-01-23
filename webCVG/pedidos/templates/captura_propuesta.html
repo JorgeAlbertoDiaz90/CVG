@@ -3,249 +3,270 @@
 
 {% block content %}
 
+<h5 class="mb-3 fw-bold text-primary">Información del Pedido</h5>
 
-<div class="container-fluid mt-3">
+<input type="hidden" id="id_pedido" value="{{ pedido.id }}">
 
-    <!-- BOTÓN VOLVER -->
-    <!-- <div class="d-flex justify-content-end mb-2">
-        <a href="{% url 'lista_cliente' %}" class="btn btn-outline-primary btn-sm rounded-circle p-2">
-            <i class="bi bi-arrow-left"></i>
-        </a>
-    </div> -->
+<!-- DATOS DEL CLIENTE -->
+<div class="row g-1">
 
-    <!-- TARJETA PRINCIPAL -->
-    <div class="card card-modern">
-        <div class="card-body">
+    <div class="col-12 col-md-4 col-lg-3">
+        <label class="label-title">Fecha:</label>
+        <input class="form-control input-black"
+               value="{{ fecha_pedido|date:'d/m/Y H:i:s' }}"
+               readonly>
+    </div>
 
-            <!-- DATOS DEL CLIENTE -->
-            <h5 class="mb-3 fw-bold text-primary">Información del Pedido</h5>
+    <div class="col-12 col-md-3 col-lg-2">
+        <label class="label-title">RFC:</label>
+        <input class="form-control input-black"
+               value="{{ clientes.rfc }}"
+               readonly>
+    </div>
 
-            <div class="row g-3">
+    <div class="col-12 col-md-2 col-lg-1">
+        <label class="label-title">Cliente:</label>
+        <input class="form-control input-black"
+               value="{{ clientes.idcliente }}"
+               readonly>
+    </div>
 
-                <div class="col-md-2">
-                    <label class="label-title">Fecha:</label>
-                    <input class="form-control input-black" value="{{ pedido.fecha|default:fecha_hoy|date:'d/m/Y H:i:s' }}" readonly>
-                </div>
+    <div class="w-100 d-none d-md-block d-lg-none"></div>
 
-                <div class="col-md-2">
-                    <label class="label-title">RFC:</label>
-                    <input class="form-control input-black" value="{{ clientes.rfc }}">
-                </div>
+    <div class="col-12 col-md-6 col-lg-4">
+        <label class="label-title">Nombre:</label>
+        <input class="form-control input-black"
+               value="{{ clientes.razon_social }}"
+               readonly>
+    </div>
 
-                <div class="col-md-1">
-                    <label class="label-title">Cliente:</label>
-                    <input class="form-control input-black" value="{{ clientes.idcliente }}">
-                </div>
+    <div class="col-12 col-md-3 col-lg-1">
+        <label class="label-title">Ruta:</label>
+        <input class="form-control input-black"
+               value="{{ clientes.ruta }}"
+               readonly>
+    </div>
 
-                <div class="col-md-4">
-                    <label class="label-title">Nombre:</label>
-                    <input class="form-control input-black" value="{{ clientes.razon_social }}">
-                </div>
-
-                <div class="col-md-1">
-                    <label class="label-title">Ruta:</label>
-                    <input class="form-control input-black" value="{{ clientes.ruta }}">
-                </div>
-
-                <div class="col-md-2">
-                    <label class="label-title">Evento:</label>
-                    <select class="form-select input-black">
-                        {% for e in evento %}
-                            <option value="{{ e.1 }}" {% if pedido and pedido.evento == e.1 %}selected{% endif %}>{{ e.1 }} - {{ e.0 }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-
-            <div class="row g-3 mt-1">
-                <div class="form-floatting">
-                    <textarea class="form-control input-black" placeholder="Observaciones del Pedido">{{ pedido.observaciones|default:'' }}</textarea>
-                </div>
-            </div>
-
-            <!-- BUSCADOR -->
-            <div class="mt-4">
-                <input id="buscador" type="text" class="form-control input-black"
-                       placeholder="Buscar producto por nombre o código…">
-                <div id="resultados" class="resultados-busqueda mt-1"></div>
-            </div>
-
-            <!-- TABLA DE PRODUCTOS -->
-            <div class="table-responsive mt-2">
-                <table class="table table-bordered table-products text-center" id="tabla-producto">
-                    <colgroup>
-                        <col style="width:40%">
-                        <col style="width:2%;">
-                        <col style="width:2%;">
-                        <col style="width:8%">
-                        <col style="width:8%">
-                        <col style="width:8%">
-                        <col style="width:4%">
-                        <col style="width:4%">
-                        <col style="width:10%">
-                        <col style="width:10%">
-                        <col style="width:2%">
-                    </colgroup>
-
-                    <thead>
-                        <tr>
-                            <th colspan="1">Producto</th>
-                            <th></th>
-                            <th></th>
-                            <th>Unitario</th>
-                            <th>Cant.</th>
-                            <th>Bon.</th>
-                            <th>D1%</th>
-                            <th>D2%</th>
-                            <th>Subtotal</th>
-                            <th>Importe</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- TOTAL -->
-            <div class="d-flex flex-row-reverse bd-highlight">
-                <div class="total-box">
-                    TOTAL: $<span id="totalGeneral">0.00</span>
-                </div>
-            </div>
-            <div class="d-flex justify-content-between mt-3">
-                <div class="text-end mt-3">
-                    <button class="btn btn-success" onclick="guardarPedido()">
-                        <i class="bi bi-save"></i> Guardar Pedido
-                    </button>
-                </div>
-            </div>
-        </div>
+    <div class="col-12 col-md-3 col-lg-2">
+        <label class="label-title">Evento:</label>
+        <select id="evento" class="form-select input-black">
+            {% for e in evento %}
+            <option value="{{ e.1 }}"
+                {% if pedido.evento == e.1 %}selected{% endif %}>
+                {{ e.1 }} - {{ e.0 }}
+            </option>
+            {% endfor %}
+        </select>
     </div>
 </div>
 
-<!-- MODAL COMENTARIO PRODUCTO -->
-<div class="modal fade" id="modalComentario" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content modal-historico">
+<div class="mt-2">
+    <textarea id="observaciones"
+              class="form-control input-black"
+              placeholder="Observaciones del Pedido">{{ pedido.observaciones|default:'' }}</textarea>
+</div>
 
-            <!-- HEADER -->
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title d-flex align-items-center gap-2">
-                    <i class="bi bi-chat-left-text fs-4"></i>
-                    Observaciones del producto
-                </h5>
-                <button type="button"
-                        class="btn-close btn-close-white"
-                        data-bs-dismiss="modal"></button>
-            </div>
+<!-- BUSCADOR -->
+<div class="mt-4">
 
-            <!-- BODY -->
-            <div class="modal-body">
+    <div class="row g-2 align-items-end">
 
-                <label class="form-label small text-muted mb-1">
-                    Comentario
-                </label>
-
-                <textarea id="comentarioProducto"
-                          class="form-control comentario-textarea"
-                          rows="5"
-                          placeholder="Escribe aquí una observación para este producto..."></textarea>
-
-                <div class="form-text mt-2">
-                    Este comentario se guardará junto al producto en el pedido.
-                </div>
-            </div>
-
-            <!-- FOOTER -->
-            <div class="modal-footer justify-content-between">
-                <button class="btn btn-outline-secondary btn-sm"
-                        data-bs-dismiss="modal">
-                    Cancelar
-                </button>
-
-                <button class="btn btn-success btn-sm"
-                        onclick="guardarComentario()">
-                    <i class="bi bi-check-lg"></i> Guardar
-                </button>
-            </div>
+        <!-- BUSCADOR -->
+        <div class="col-12 col-md-8 col-lg-6">
+            <input id="buscador"
+                   type="text"
+                   class="form-control input-black"
+                   placeholder="Buscar producto por nombre o código…">
         </div>
+
+        <!-- BOTÓN -->
+        <div class="col-12 col-md-4 col-lg-3">
+            <button class="btn btn-outline-primary w-100"
+                onclick="irSeleccionMultiple()">
+                <i class="bi bi-list-check"></i>
+                Selección múltiple
+            </button>
+        </div>
+
     </div>
+
+    <!-- RESULTADOS (siempre debajo y ancho completo) -->
+    <div id="resultados" class="resultados-busqueda mt-2"></div>
+
+</div>
+
+
+<!-- TABLA PRODUCTOS -->
+<div class="productos-wrapper mt-3">
+
+    <div class="productos-header text-center fw-semibold">
+        Lista de productos en el pedido actual
+    </div>
+
+    <div class="productos-body">
+        <table id="tabla-producto"
+               class="table table-sm table-products text-center mb-0">
+            <thead>
+                <tr>
+                    <th style="width:60%">Producto</th>
+                    <th>Unitario</th>
+                    <th>Cant</th>
+                    <th>Bon</th>
+                    <th>D1%</th>
+                    <th>D2%</th>
+                    <th>Subtotal</th>
+                    <th>Importe</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TOTAL -->
+<div class="d-flex justify-content-end mt-3">
+    <div class="total-box">
+        TOTAL: $<span id="totalGeneral">0.00</span>
+    </div>
+</div>
+
+<!-- BOTONES -->
+<div class="d-flex justify-content-between mt-3">
+    <button class="btn btn-success" onclick="guardarPedido()">
+        <i class="bi bi-save"></i> Guardar Pedido
+    </button>
+
+    <button class="btn btn-danger" onclick="confirmarCancelacion()">
+        <i class="bi bi-x-circle"></i> Cancelar
+    </button>
 </div>
 
 <!-- MODAL HISTORICO DEL PRODUCTO -->
-<div class="modal fade" id="modalHistorico" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+<div class="modal fade" id="modalHistorico" tabindex="-1"> 
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-historico-wide"> 
+        <div class="modal-content modal-historico"> 
+            <!-- HEADER --> 
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title d-flex align-items-center gap-2">
+                    <i class="bi bi-clock-history fs-4"></i> Histórico del producto 
+                </h5> 
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button> 
+            </div> 
+            <!-- BODY --> 
+            <div class="modal-body"> 
+                <div class="table-responsive historico-scroll"> 
+                    <table class="table table-borderless table-hover align-middle text-nowrap historico-table"> 
+                        <thead> 
+                            <tr> 
+                                <th>Fecha</th>
+                                <th>Idcliente</th> 
+                                <th class="d-none d-md-table-cell">Cliente</th> 
+                                <th>Código</th> 
+                                <th class="d-none d-md-table-cell">Producto</th> 
+                                <th>Precio</th> 
+                                <th>Cant.</th> 
+                                <th class="d-none d-md-table-cell">Bon</th> 
+                                <th class="d-none d-md-table-cell">D1</th> 
+                                <th class="d-none d-md-table-cell">D2</th> 
+                                <th class="text-end">Total</th> 
+                            </tr> 
+                        </thead> 
+                        <tbody id="tablaHistorico"> <!-- JS --> </tbody> 
+                    </table> 
+                </div> 
+            </div> 
+            <!-- FOOTER --> 
+            <div class="modal-footer justify-content-between small text-muted"> 
+                <span> <i class="bi bi-info-circle"></i> Precios históricos del cliente </span> 
+                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"> Cerrar </button> 
+            </div> 
+        </div> 
+    </div> 
+</div>
+
+<!-- MODAL COMENTARIO PRODUCTO -->
+
+ <div class="modal fade" id="modalComentario" tabindex="-1"> 
+    <div class="modal-dialog modal-dialog-centered"> 
         <div class="modal-content modal-historico">
 
             <!-- HEADER -->
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header bg-primary text-white"> 
                 <h5 class="modal-title d-flex align-items-center gap-2">
-                    <i class="bi bi-clock-history fs-4"></i>
-                    Histórico del producto
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
+                    <i class="bi bi-chat-left-text fs-4">
+                    </i> Observaciones del producto 
+                </h5> 
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button> 
+            </div> 
 
             <!-- BODY -->
-            <div class="modal-body">
+            <div class="modal-body"> 
+                <label class="form-label small text-muted mb-1">
+                     Comentario 
+                </label> 
+                <textarea id="comentarioProducto" class="form-control comentario-textarea" rows="5" placeholder="Escribe aquí una observación para este producto..."></textarea>
+                 <div class="form-text mt-2">Este comentario se guardará junto al producto en el pedido.</div> 
+            </div> 
 
-                <div class="table-responsive">
-                    <table class="table table-borderless table-hover align-middle text-nowrap historico-table">
+            <!-- FOOTER --> 
+            <div class="modal-footer justify-content-between">
+                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"> Cancelar </button> 
+                <button class="btn btn-success btn-sm" onclick="guardarComentario()"> <i class="bi bi-check-lg"></i>
+                    Guardar 
+                </button> 
+            </div> 
+        </div> 
+    </div> 
+</div> 
 
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Idcliente</th>
-                                <th class="d-none d-md-table-cell">Cliente</th>
-                                <th>Código</th>
-                                <th class="d-none d-md-table-cell">Producto</th>
-                                <th>Precio</th>
-                                <th>Cant.</th>
-                                <th class="d-none d-lg-table-cell">Bon</th>
-                                <th class="d-none d-lg-table-cell">D1</th>
-                                <th class="d-none d-lg-table-cell">D2</th>
-                                <th class="text-end">Total</th>
-                            </tr>
-                        </thead>
+<!-- MODAL ELIMINAR PRODUCTO -->
+<div class="modal fade" id="modalEliminar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-eliminar">
 
-                        <tbody id="tablaHistorico">
-                            <!-- JS -->
-                        </tbody>
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title d-flex align-items-center gap-2">
+          <i class="bi bi-trash fs-4"></i>
+          Eliminar producto
+        </h5>
+        <button type="button" class="btn-close btn-close-white"
+                data-bs-dismiss="modal"></button>
+      </div>
 
-                    </table>
-                </div>
+      <div class="modal-body text-center">
+        <p class="mb-1 fw-semibold">
+          ¿Seguro que deseas eliminar este producto del pedido?
+        </p>
+        <small class="text-muted">
+          Esta acción no se puede deshacer.
+        </small>
+      </div>
 
-            </div>
+      <div class="modal-footer justify-content-between">
+        <button class="btn btn-outline-secondary btn-sm"
+                data-bs-dismiss="modal">
+          Cancelar
+        </button>
 
-            <!-- FOOTER -->
-            <div class="modal-footer justify-content-between small text-muted">
-                <span>
-                    <i class="bi bi-info-circle"></i>
-                    Precios históricos del cliente
-                </span>
-                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">
-                    Cerrar
-                </button>
-            </div>
+        <button class="btn btn-danger btn-sm"
+                onclick="confirmarEliminarProducto()">
+          <i class="bi bi-trash"></i>
+          Eliminar
+        </button>
+      </div>
 
-        </div>
     </div>
+  </div>
 </div>
 
-{% if productos %}
-<script>
-const productosPedido = {{ productos|safe }};
-productosPedido.forEach(p => agregarProductoExistente(p));
-</script>
-{% endif %}
-
+{{ productos|json_script:"productos-data" }}
 
 <script>
 // =====================================================
 // VARIABLES GLOBALES
 // =====================================================
 let filaActualComentario = null;
+let filaActualEliminar = null;
 
 // FUNCION QUE LE DA FORMATO A LAS CIFRAS GRANDES 
 function money_es(value) {
@@ -258,7 +279,7 @@ function money_es(value) {
 }
 
 // =====================================================
-// BUSCADOR DE PRODUCTOS
+// BUSCADOR DE PRODUCTOS Y MUESTRA LOS DATOS QUE SE AGREGAN DENTRO DEL PEDIDO
 // =====================================================
 const buscador = document.getElementById("buscador");
 const resultados = document.getElementById("resultados");
@@ -287,26 +308,44 @@ buscador.addEventListener("keyup", function () {
 
             data.forEach(p => {
                 html += `
-                    <button type="button"
-                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                        onclick="agregarProducto(
-                            '${p.codigo}',
-                            '${p.nombre}',
-                            '${p.presentacion}',
-                            '${p.publico}'
-                        )">
+                    <div class="list-group-item product-item d-flex justify-content-between align-items-center">
 
-                        <div>
-                            <strong>${resaltar(p.codigo)} - ${resaltar(p.nombre, query)} - ${p.presentacion}</strong><br>
+                        <div class="product-info">
+                            <strong>
+                                ${resaltar(p.codigo)} - ${resaltar(p.nombre, query)}
+                            </strong><br>
                             <small class="text-muted">
-                                ${resaltar(p.linea, query)} | ${p.descripcion} | I.V.A: ${p.iva} | I.E.P.S: ${p.ieps}
+                                ${p.presentacion} | ${p.linea}
                             </small>
                         </div>
 
-                        <span class="badge bg-success fs-6">
-                            $${money_es(p.publico)}
-                        </span>
-                    </button>`;
+                        <div class="product-right">
+
+                            <!-- PRECIO -->
+                            <span class="product-price-green">
+                                $${money_es(p.publico)}
+                            </span>
+
+                            <!-- BOTÓN AZUL -->
+                            <button type="button"
+                                class="btn-add-blue"
+                                title="Agregar al pedido"
+                                onclick="agregarProducto(
+                                    '${p.codigo}',
+                                    '${p.nombre}',
+                                    '${p.presentacion}',
+                                    '${p.publico}',
+                                    '${p.descripcion}',
+                                    '${p.linea}'
+                                )">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                `;
             });
 
             resultados.innerHTML = html;
@@ -319,32 +358,47 @@ function resaltar(texto, busqueda) {
     return texto.replace(regex, `<mark>$1</mark>`);
 }
 
+// FUNCION PARA LA SELECCION MULTIPLE
+
+function irSeleccionMultiple() {
+    const idPedido = document.getElementById("id_pedido").value;
+    window.location.href = `/pedidos/seleccion_multiple/${idPedido}/`;
+}
+
+
 // =====================================================
-// AGREGAR PRODUCTO
+// AGREGAR PRODUCTO PARA CUANDO TU VUELVAS A CARGAR EL PEDIDO LOS PRODUCTOS SIGAN APARECIENDO
 // =====================================================
 
 
-function agregarProducto(codigo, nombre, presentacion, publico) {
+function agregarProducto(codigo, nombre, presentacion, publico, descripcion, linea) {
     let tbody = document.querySelector("#tabla-producto tbody");
 
     let fila = document.createElement("tr");
+
+    // ESTE APARTADO AYUDA A MOSTRAR EL COMENTARIO GUARDADO DENTRO DEL PRODUCTOY EL ESPACIO ES PARA QUE NO SE AGREGUE ALGUN DATO DE CODIGO Y SE QUEDE VACIO
     fila.setAttribute("data-comentario", "");
 
     fila.innerHTML = `
-        <td>${codigo} - ${nombre}</td>
+        <td class="text-center">
+            <div class="producto-nombre text-start">${codigo} - ${nombre} | ${descripcion} - ${linea}</div>
 
-        <td>
-            <button class="btn btn-sm btn-info"
-                    onclick="abrirModalHistorico(this)">
-                <i class="bi bi-card-list"></i>
-            </button>
-        </td>
+            <div class="producto-acciones">
+                <button class="btn btn-sm btn-info"
+                        onclick="abrirModalHistorico(this)">
+                    <i class="bi bi-card-list"></i>
+                </button>
+        
+                <button class="btn btn-sm btn-warning"
+                        onclick="abrirModalComentario(this)">
+                    <i class="bi bi-chat-left-text"></i>
+                </button>
 
-        <td>
-            <button class="btn btn-sm btn-warning"
-                    onclick="abrirModalComentario(this)">
-                <i class="bi bi-chat-left-text"></i>
-            </button>
+                <button class="btn btn-sm btn-danger"
+                        onclick="abrirModalEliminar(this)">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>    
         </td>
 
         <td>
@@ -378,15 +432,20 @@ function agregarProducto(codigo, nombre, presentacion, publico) {
                    onchange="calcularFila(this)">
         </td>
 
-        <td class="subtotal">${money_es(0)}</td>
-        <td class="importe">${money_es(0)}</td>
-
-        <td>
-            <button class="btn btn-sm btn-danger"
-                    onclick="this.closest('tr').remove(); calcularTotalGeneral();">
-                <i class="bi bi-x-lg"></i>
-            </button>
+        <td class="subtotal">
+            <input type="text"
+                class="form-control form-control-sm text-end input-money subtotal-input"
+                value="${money_es(0)}"
+                readonly>
         </td>
+
+        <td class="importe">
+            <input type="text"
+                class="form-control form-control-sm text-end input-money importe-input"
+                value="${money_es(0)}"
+                readonly>
+        </td>
+
     `;
 
     tbody.appendChild(fila);
@@ -425,15 +484,15 @@ function guardarComentario() {
 
     filaActualComentario.setAttribute("data-comentario", texto);
 
-    let btnChat =
-        filaActualComentario.querySelector("button.btn-warning");
-
-    btnChat.classList.toggle("btn-warning", texto.trim() !== "");
+    calcularFila(
+        filaActualComentario.querySelector(".cantidad")
+    ); // 👈 fuerza autosave
 
     bootstrap.Modal.getInstance(
         document.getElementById("modalComentario")
     ).hide();
 }
+
 
 // =====================================================
 // ABRIR MODAL DE HISTORICO
@@ -481,6 +540,57 @@ function abrirModalHistorico(btn) {
 }
 
 // =====================================================
+// MODAL PARA ELIMINAR PRODUCTO
+// =====================================================
+
+function abrirModalEliminar(btn) {
+    filaActualEliminar = btn.closest("tr");
+
+    new bootstrap.Modal(
+        document.getElementById("modalEliminar")
+    ).show();
+}
+
+// =====================================================
+// CONFIRMAR MODAL PARA ELIMINAR PRODUCTO
+// =====================================================
+
+function confirmarEliminarProducto() {
+
+    if (!filaActualEliminar) return;
+
+    const codigo = filaActualEliminar
+        .cells[0].innerText.split(" - ")[0];
+
+    const idPedido = document.getElementById("id_pedido").value;
+
+    // eliminar del DOM
+    filaActualEliminar.remove();
+    filaActualEliminar = null;
+
+    // recalcular total
+    calcularTotalGeneral();
+
+    // eliminar en BD
+    fetch("{% url 'eliminar_producto_pedido' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({
+            id_pedido: idPedido,
+            codigo: codigo
+        })
+    });
+
+    // cerrar modal
+    bootstrap.Modal.getInstance(
+        document.getElementById("modalEliminar")
+    ).hide();
+}
+
+// =====================================================
 // CALCULAR SUBTOTAL / IMPORTE POR FILA
 // =====================================================
 function calcularFila(el) {
@@ -502,10 +612,11 @@ function calcularFila(el) {
     let importe = subtotal - desc1 - desc2;
 
     // Mostrar FORMATEADO
-    tr.querySelector(".subtotal").innerText = money_es(subtotal);
-    tr.querySelector(".importe").innerText  = money_es(importe);
+    tr.querySelector(".subtotal-input").value = money_es(subtotal);
+    tr.querySelector(".importe-input").value  = money_es(importe);
 
     calcularTotalGeneral();
+    autoGuardarBorrador();
 }
 
 
@@ -515,10 +626,11 @@ function calcularFila(el) {
 function calcularTotalGeneral() {
     let total = 0;
 
-    document.querySelectorAll(".importe").forEach(el => {
-        let valor = el.innerText.replace(/,/g, '');
+    document.querySelectorAll(".importe-input").forEach(input => {
+        let valor = input.value.replace(/,/g, '');
         total += parseFloat(valor) || 0;
     });
+
 
     document.getElementById("totalGeneral").innerText = money_es(total);
 }
@@ -536,6 +648,7 @@ function guardarPedido() {
     }
 
     let pedido = {
+        id_pedido: document.getElementById("id_pedido").value,  
         idcliente: "{{ clientes.idcliente }}",
         ruta: "{{ clientes.ruta }}",
         evento: document.querySelector("select").value,
@@ -546,6 +659,7 @@ function guardarPedido() {
         productos: []
     };
 
+
     filas.forEach(tr => {
         pedido.productos.push({
             codigo: tr.cells[0].innerText.split(" - ")[0],
@@ -554,9 +668,9 @@ function guardarPedido() {
             cantidad: tr.querySelector(".cantidad").value,
             d1: tr.querySelector(".d1").value,
             d2: tr.querySelector(".d2").value,
-            subtotal: tr.querySelector(".subtotal").innerText.replace(/,/g, ''),
-            importe: tr.querySelector(".importe").innerText.replace(/,/g, ''),
-            comentario: tr.getAttribute("data-comentario")
+            subtotal: tr.querySelector(".subtotal-input").value.replace(/,/g, ''),
+            importe: tr.querySelector(".importe-input").value.replace(/,/g, ''),
+            observaciones: tr.getAttribute("data-comentario")
         });
     });
 
@@ -572,7 +686,7 @@ function guardarPedido() {
     .then(resp => {
         if (resp.ok) {
             alert("Pedido guardado con folio " + resp.id_pedido);
-            window.location.href = "{% url 'lista_cliente' %}";
+            window.location.href = "{% url 'consultar_pedidos' %}";
         } else {
             alert("Error al guardar pedido");
         }
@@ -582,20 +696,128 @@ function guardarPedido() {
         alert("Error de comunicación con el servidor");
     });
 }
-
+// ESTE APARTADO ES UNICAMENTE CUANDO VUELVES A RETOMAR EL PEDIDO
 function agregarProductoExistente(p) {
-    agregarProducto(p.codigo, p.nombre, "", p.precio);
+    agregarProducto(
+        p.codigo,
+        p.nombre,
+        p.presentacion || "",
+        p.precio,
+        p.descripcion || "",
+        p.linea || "",
+        p.observaciones || ""
+    );
 
     let fila = document.querySelector("#tabla-producto tbody tr:last-child");
 
-    fila.querySelector(".cantidad").value = p.cantidad;
-    fila.querySelector(".d1").value = p.d1;
-    fila.querySelector(".d2").value = p.d2;
-    fila.setAttribute("data-comentario", p.comentario || "");
+    fila.querySelector(".precio").dataset.valor = p.precio;
+    fila.querySelector(".precio").value = money_es(p.precio);
+
+    fila.querySelector(".cantidad").value = p.cantidad || 1;
+    fila.querySelector(".bon").value = p.bon || 0;
+    fila.querySelector(".d1").value = p.d1 || 0;
+    fila.querySelector(".d2").value = p.d2 || 0;
+
+    if (p.observaciones) {
+        fila.setAttribute("data-comentario", p.observaciones);
+    }
 
     calcularFila(fila.querySelector(".cantidad"));
 }
 
+// =======================================
+// CARGAR PRODUCTOS GUARDADOS DEL PEDIDO
+// =======================================
+document.addEventListener("DOMContentLoaded", () => {
+
+    // 1. Productos ya guardados del pedido
+    const productosGuardados = JSON.parse(
+        document.getElementById("productos-data").textContent
+    );
+
+    productosGuardados.forEach(p => {
+        agregarProductoExistente(p);
+    });
+
+    // 2. Productos seleccionados desde selección múltiple
+    const seleccionados = {{ productos_seleccion|default:"[]"|safe }};
+
+    seleccionados.forEach(p => {
+        agregarProducto(
+            p.codigo,
+            p.nombre,
+            "",
+            p.precio_unitario,
+            p.descripcion,
+            p.linea
+        );
+    });
+
+});
+
+// ----- GUARDA EL PEDIDO -------
+let pedido = {
+    id_pedido: document.getElementById("id_pedido").value,
+    idcliente: "{{ clientes.idcliente }}",
+    ruta: "{{ clientes.ruta }}",
+    evento: document.querySelector("select").value,
+    observaciones: document.querySelector(
+        "textarea[placeholder='Observaciones del Pedido']"
+    ).value,
+    total: document.getElementById("totalGeneral")
+            .innerText.replace(/,/g, ''),
+    productos: []
+};
+
+// ------ CANCELACION DE PEDIDO -----
+
+function confirmarCancelacion() {
+    if (confirm("¿Seguro que deseas cancelar este pedido?")) {
+        window.location.href = "{% url 'cancelar_pedido' pedido.id %}";
+    }
+}
+
+
+// ------- AUTO GUARDADO DE PRODUCTOS -----
+
+let autosaveTimer = null;
+
+function autoGuardarBorrador() {
+    clearTimeout(autosaveTimer);
+
+    autosaveTimer = setTimeout(() => {
+        let filas = document.querySelectorAll("#tabla-producto tbody tr");
+
+        let pedido = {
+            id_pedido: document.getElementById("id_pedido").value,
+            productos: []
+        };
+
+        filas.forEach(tr => {
+            pedido.productos.push({
+                codigo: tr.cells[0].innerText.split(" - ")[0],
+                nombre: tr.cells[0].innerText.split(" - ")[1],
+                precio: tr.querySelector(".precio").value.replace(/,/g, ''),
+                cantidad: tr.querySelector(".cantidad").value,
+                d1: tr.querySelector(".d1").value,
+                d2: tr.querySelector(".d2").value,
+                subtotal: tr.querySelector(".subtotal-input").value.replace(/,/g, ''),
+                importe: tr.querySelector(".importe-input").value.replace(/,/g, ''),
+                observaciones: tr.getAttribute("data-comentario")
+            });
+        });
+
+        fetch("{% url 'guardar_borrador_pedido' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify(pedido)
+        });
+
+    }, 800); // debounce
+}
 
 </script>
 

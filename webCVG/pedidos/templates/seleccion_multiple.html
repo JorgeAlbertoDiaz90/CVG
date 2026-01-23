@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-3">
+
+    <!-- HEADER -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold text-primary mb-0">
+            <i class="bi bi-list-check me-1"></i>
+            Selección múltiple de productos
+        </h5>
+        <span class="badge bg-light text-muted">
+            Marca los productos a agregar
+        </span>
+    </div>
+
+    <!-- BUSCADOR -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-body p-2">
+            <div class="input-group">
+                <span class="input-group-text bg-white">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text"
+                       id="searchInput"
+                       class="form-control"
+                       placeholder="Buscar por código, nombre o línea...">
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTA -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light fw-semibold small">
+            Productos disponibles
+        </div>
+
+        <div class="card-body p-2 lista-productos" id="listaProductos">
+            <!-- JS -->
+        </div>
+    </div>
+
+    <input type="hidden" id="id_pedido" value="{{ id_pedido }}">
+
+    <!-- BOTÓN FINAL -->
+    <div class="sticky-footer mt-3">
+        <button type="button"
+                class="btn btn-success w-100 py-2 fw-semibold"
+                onclick="finalizarSeleccion()">
+            <i class="bi bi-check-circle me-1"></i>
+            Finalizar selección
+        </button>
+    </div>
+
+</div>
+
+<style>
+.lista-productos {
+    max-height: 750px;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+/* ITEM */
+.producto-item {
+    display: flex;
+    width: 100%;
+    border: 1px solid #e5e5e5;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.2s ease;
+}
+
+/* HOVER */
+.producto-item:hover {
+    background: #f8f9fa;
+    border-color: #dcdcdc;
+}
+
+/* CHECK */
+.producto-item input[type="checkbox"] {
+    transform: scale(1.1);
+}
+
+.producto-linea {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.txt-codigo {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #6c757d;
+}
+
+.txt-nombre {
+    font-size: 0.9rem;
+    font-weight: 600;
+    max-width: 420px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.txt-extra {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.txt-precio {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #198754;
+    margin-left: auto; /* empuja el precio al final */
+}
+
+/* SELECCIONADO */
+.producto-item:has(input:checked) {
+    background: #e9f5ff;
+    border-color: #0d6efd;
+}
+
+.cantidad-input {
+    width: 60px !important;
+    height: 30px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    text-align: center;
+    font-weight: 600;
+}
+
+</style>
+
+<script>
+const searchInput = document.getElementById("searchInput");
+const listaProductos = document.getElementById("listaProductos");
+const seleccionados = {};
+
+// FUNCION QUE LE DA FORMATO A LAS CIFRAS GRANDES 
+function money_es(value) {
+    let number = parseFloat(value);
+    if (isNaN(number)) return value;
+    return number.toLocaleString('es-MX', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function cargarProductos(query = "") {
+    fetch("{% url 'buscar_productos' %}?q=" + encodeURIComponent(query))
+        .then(r => r.json())
+        .then(data => {
+
+            if (data.length === 0) {
+                listaProductos.innerHTML = `
+                    <div class="text-muted text-center py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No se encontraron productos
+                    </div>`;
+                return;
+            }
+
+            let html = "";
+
+            data.forEach(p => {
+
+                const checked = seleccionados[p.codigo] ? "checked" : "";
+                const cantidad = seleccionados[p.codigo]?.cantidad || 1;
+                const visible = seleccionados[p.codigo] ? "block" : "none";
+
+                html += `
+                    <label class="producto-item d-flex align-items-center gap-3">
+                        <input class="form-check-input"
+                            type="checkbox"
+                            data-codigo="${p.codigo}"
+                            ${checked}
+                            onchange="toggleProducto(this)">
+
+                        <div class="producto-texto producto-linea">
+                            <span class="txt-codigo">${p.codigo}</span>
+                            <span class="txt-sep">•</span>
+
+                            <span class="txt-nombre">${p.nombre}</span>
+
+                            <span class="txt-extra">
+                                (${p.presentacion || "—"} | ${p.linea || "—"})
+                            </span>
+                            
+
+                            <span class="txt-precio">
+                                $ ${money_es(p.publico)}
+                            </span>
+                        </div>
+
+
+                        <input type="number"
+                            class="form-control cantidad-input ms-auto"
+                            data-codigo="${p.codigo}"
+                            value="${cantidad}"
+                            min="1"
+                            style="width:90px; display:${visible}"
+                            onchange="cambiarCantidad(this)">
+                    </label>
+                `;
+            });
+
+            listaProductos.innerHTML = html;
+        });
+}
+
+// BUSCAR
+searchInput.addEventListener("keyup", function () {
+    cargarProductos(this.value.trim());
+});
+
+// CARGA INICIAL
+document.addEventListener("DOMContentLoaded", function () {
+    cargarProductos();
+});
+
+// SELECCIÓN
+function toggleProducto(checkbox) {
+
+    const codigo = checkbox.dataset.codigo;
+    const item = checkbox.closest(".producto-item");
+    const cantidadInput = item.querySelector(".cantidad-input");
+
+    if (checkbox.checked) {
+        seleccionados[codigo] = {
+            cantidad: cantidadInput.value || 1
+        };
+        cantidadInput.style.display = "block";
+    } else {
+        delete seleccionados[codigo];
+        cantidadInput.style.display = "none";
+    }
+}
+
+function cambiarCantidad(input) {
+    const codigo = input.dataset.codigo;
+    if (seleccionados[codigo]) {
+        seleccionados[codigo].cantidad = input.value;
+    }
+}
+
+// FINALIZAR
+function finalizarSeleccion() {
+
+    const productos = [];
+
+    for (const codigo in seleccionados) {
+        productos.push({
+            codigo: codigo,
+            cantidad: seleccionados[codigo].cantidad
+        });
+    }
+
+    fetch("{% url 'guardar_borrador_pedido' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({
+            id_pedido: document.getElementById("id_pedido").value,
+            productos: productos
+        })
+    }).then(() => {
+        window.location.href =
+            `/pedidos/continuar_pedido/${document.getElementById("id_pedido").value}/`;
+    });
+}
+
+</script>
+{% endblock %}

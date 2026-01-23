@@ -3,11 +3,14 @@ from django.contrib.auth.decorators import login_required
 from django.db import connection, transaction
 from . import utils
 from django.utils import timezone
+from datetime import datetime, timezone as dt_timezone
 from django.contrib import messages
 from django.http import JsonResponse
 import json
+from decimal import Decimal, ROUND_HALF_UP
 
 # PARA ESTE APARTADO SE REALIZA UN LISTADO DE LOS CLIENTES DEPENDIENDO DEL VENDEDOR Y DE LA REGION DEL VENDEDOR
+# *** Y ES EL PRIMER PASO PARA REALIZAR EL PEDIDO LA SELECCION DEL CLIENTE ***
 
 @login_required
 def lista_cliente(request):
@@ -15,7 +18,7 @@ def lista_cliente(request):
     idvend = request.user.idvend
 
     try:
-        clientes = utils.get_catalogo_clientes(is_staff, idvend)
+        clientes = utils.get_catalogo_clientes(is_staff, idvend) # FUNCIONANDO
     except Exception as e:
         messages.error(request, f"Error al cargar los clientes: {str(e)}")
     
@@ -24,21 +27,166 @@ def lista_cliente(request):
     })
 
 
-# --- COMIENZO DE INTERFAZ PARA CAPTURA DE PEDIDO ------
+# EN ESTE APARTADO SE CAPTURAN LOS DATOS PRINCIPALES DEL CLIENTE UNA VEZ SELECCIONADO EN EL PASO ANTERIOR Y SE REALIZA EL LLENADO AUTOMATICO
 
 @login_required
 def captura_propuesta(request, idcliente):
     ide = request.user.ide
+    idvend = request.user.idvend
 
-    cliente = utils.get_clientes(ide, idcliente) # MUESTRA LOS DATOS DE CLIENTE SELECCIONADO
-    evento = utils.get_eventos() # MUESTRA LOS EVENTOS PARA PODER ASIGNARLOS DENTRO DEL PEDIDO
-    hoy = timezone.now() # AYUDA A MOSTRAR LA HORA Y ASIGNARLA DENTRO DEL PEDIDO
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL a_pedido_inicial(%s, %s, %s)",
+            [idcliente, ide, idvend]
+        )
+        result = utils.dictfetchall(cursor)
+
+    # id del pedido creado o existente
+    idpedido = result[0]["id"]
+
+    # redirección correcta
+    return redirect("continuar_pedido", idpedido=idpedido)
+
+# PARA ESTE APARTADO ES LA CONTINUACION DE ALGUN PEDIDO QUE SE MANTENGA EN ESTATUS EN PENDIENTE
+
+@login_required
+def continuar_pedido(request, idpedido):
+    ide = request.user.ide
+    idvend = request.user.idvend
+
+    pedido = utils.get_pedido_activo(idpedido, idvend, ide) # FUNCIONANDO
+
+    if pedido["status"] != "PENDIENTE":
+        messages.warning(request, "Este pedido ya no puede modificarse")
+        return redirect("menu")
+    
+    # Este apartado es para la seleccion multiple 
+    productos_seleccion = utils.get_productos_seleccionados(idpedido)
+ 
+    # LIMPIAR TABLA TEMPORAL
+    utils.limpiar_productos_seleccion(idpedido)
+
+    productos = utils.get_productos_pedido_activo(idpedido, ide) # FUNCIONANDO
+    cliente = utils.get_clientes(ide, pedido["idcliente"]) # FUNCIONANDO
+    eventos = utils.get_eventos() # FUNCIONANDO
+
+    fecha_raw = pedido.get("fecha")
+
+    if fecha_raw:
+        fecha_dt = datetime.strptime(fecha_raw, "%Y-%m-%d %H:%M:%S")
+
+        # ASUMES QUE ES UTC
+        fecha_dt = timezone.make_aware(fecha_dt, dt_timezone.utc)
+
+        # Se convierte a hora local (America/Mexico_City)
+        fecha_pedido = timezone.localtime(fecha_dt)
+    else:
+        fecha_pedido = timezone.localtime(timezone.now())
 
     return render(request, "captura_propuesta.html", {
+        "pedido": pedido,
+        "productos": productos,
         "clientes": cliente,
-        "evento": evento,
-        "fecha_hoy": hoy
+        "evento": eventos,
+        "fecha_pedido": fecha_pedido,
+        "productos_seleccion": productos_seleccion
     })
+
+@login_required
+def guardar_borrador_pedido(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    data = json.loads(request.body)
+    ide = request.user.ide
+
+    def to_int(valor, default=1):
+        try:
+            return int(valor)
+        except:
+            return default
+
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+
+            for p in data.get("productos", []):
+
+                cantidad = to_int(p.get("cantidad"), 1)
+
+                # DATOS REALES DEL PRODUCTO
+                cursor.execute("""
+                    SELECT nombre, publico
+                    FROM _productos
+                    WHERE codigo = %s
+                    LIMIT 1
+                """, [p.get("codigo")])
+
+                row = cursor.fetchone()
+                if not row:
+                    continue  # producto inválido
+
+                nombre = row[0]
+                precio = Decimal(row[1])   # ← CONVERSIÓN CLAVE
+                cantidad = Decimal(cantidad)
+
+                d1 = Decimal("0.00")
+                d2 = Decimal("0.00")
+
+                subtotal = (precio * cantidad).quantize(
+                    Decimal("0.00"),
+                    rounding=ROUND_HALF_UP
+)
+                importe = subtotal
+                observaciones = ""
+
+                cursor.execute(
+                    "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    [
+                        data["id_pedido"],
+                        p.get("codigo"),
+                        nombre,
+                        precio,
+                        cantidad,
+                        d1,
+                        d2,
+                        subtotal,
+                        importe,
+                        observaciones,
+                        ide
+                    ]
+                )
+
+    return JsonResponse({"ok": True})
+
+@login_required
+def seleccion_multiple_productos(request, id_pedido):
+    productos = utils.get_catalogo_productos()
+    return render(request, "seleccion_multiple.html", {
+        "id_pedido": id_pedido,
+        "productos": productos
+    })
+
+@login_required
+def toggle_producto_seleccion(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    data = json.loads(request.body)
+
+    with connection.cursor() as cursor:
+        if data["activo"]:
+            cursor.execute("""
+                INSERT IGNORE INTO _pedido_productos_tmp (id_pedido, codigo_producto)
+                VALUES (%s, %s)
+            """, [data["id_pedido"], data["codigo"]])
+        else:
+            cursor.execute("""
+                DELETE FROM _pedido_productos_tmp
+                WHERE id_pedido = %s AND codigo_producto = %s
+            """, [data["id_pedido"], data["codigo"]])
+
+    return JsonResponse({"ok": True})
+
 
 # PARA ESTE APARTADO SE REALIZARA LA BUSQUEDA DE PRODUCTOS POR MEDIO DE UN PROCEDIMIENTO ALMACENADO
 def buscar_productos(request):
@@ -98,28 +246,37 @@ def historico_producto(request):
 
     return JsonResponse(data, safe=False)
 
-# PARA ESTE APARTADO GUARDA EL PEDIDO COMPLETO TANTO EL PEDIDO EN GENERAL COMO LOS PRODUCTOS DEL PEDIDO Y ESTA CONECTADOS POR MEDIO DE id_pedido
-
-def guardar_pedido(request):
+@login_required
+def eliminar_producto_pedido(request):
     if request.method == "POST":
         data = json.loads(request.body)
 
-        fecha = timezone.now()
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                DELETE FROM _pedidos_productos
+                WHERE id_pedido = %s
+                  AND clave_producto = %s
+            """, [data["id_pedido"], data["codigo"]])
+
+        return JsonResponse({"ok": True})
+
+
+# PARA ESTE APARTADO GUARDA EL PEDIDO COMPLETO TANTO EL PEDIDO EN GENERAL COMO LOS PRODUCTOS DEL PEDIDO Y ESTA CONECTADOS POR MEDIO DE id_pedido
+
+@login_required
+def guardar_pedido(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
         ide = request.user.ide
-        idvend = request.user.idvend
 
         with transaction.atomic():
             with connection.cursor() as cursor:
-                # =============================
-                # 1. INSERTAR PEDIDO
-                # =============================
+                
+                # FINALIZAR PEDIDO
                 cursor.execute(
-                    "CALL a_pedido(%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "CALL a_pedido_final(%s,%s,%s,%s,%s)",
                     [
-                        fecha,
-                        data["idcliente"],
-                        ide,
-                        idvend,
+                        data["id_pedido"],
                         data["ruta"],
                         data["evento"],
                         data["observaciones"],
@@ -127,37 +284,32 @@ def guardar_pedido(request):
                     ]
                 )
 
-                result = cursor.fetchone()
-                id_pedido = result[0]
-
-                # =============================
-                # 2. INSERTAR PRODUCTOS
-                # =============================
-                for p in data["productos"]:
-                    cursor.execute(
-                        "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-                        [
-                            id_pedido,
-                            p["codigo"],
-                            p["nombre"],
-                            p["precio"],
-                            p["cantidad"],
-                            p["d1"],
-                            p["d2"],
-                            p["subtotal"],
-                            p["importe"],
-                            p["comentario"],
-                            ide
-                        ]
-                    )
-
         return JsonResponse({
             "ok": True,
-            "id_pedido": id_pedido
+            "id_pedido": data["id_pedido"]
         })
-    
 
-# ------ CIERRE DE CAPTURA DE PEDIDO -----
+
+@login_required
+def cancelar_pedido(request, idpedido):
+    ide = request.user.ide
+    idvend = request.user.idvend
+
+    pedido = utils.get_pedido_activo(idpedido, idvend, ide)
+
+    if not pedido:
+        messages.error(request, "El pedido no puede cancelarse")
+        return redirect("menu")
+
+    utils.cancelar_pedido(idpedido, idvend, ide)
+
+    messages.success(
+        request,
+        f"Pedido {idpedido} cancelado correctamente"
+    )
+
+    return redirect("menu")
+
 
 # ----- CONSULTAR PEDIDOS ------
 

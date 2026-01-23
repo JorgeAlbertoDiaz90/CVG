@@ -17,21 +17,21 @@
         <table class="table table-hover table-bordered" id="clienteTable">
             <thead class="table-dark text-left size_head">
                 <tr>
-                    <th>Rfc</th>
+                    <th>Idvend</th>
+                    <th>IdCliente</th>
                     <th>Nombre</th>
                     <th>Ciudad</th>
                     <th>Ruta</th>
-                    <th>Vendedor</th>
                 </tr>
             </thead>
             <tbody>
                 {% for cliente in clientes %}
                 <tr class="text-left size_body" data-idcliente="{{ cliente.idcliente }}">
-                    <td>{{ cliente.rfc }}</td>
+                    <td>{{ cliente.idvend }}</td>
+                    <td>{{ cliente.idcliente }}</td>
                     <td>{{ cliente.razon_social }}</td>
                     <td>{{ cliente.ciudad }}, {{ cliente.estado }}</td>
                     <td>{{ cliente.ruta }}</td>
-                    <td>{{ cliente.vendedor }}</td>
                 </tr>
                 {% empty %}
                 <tr>
