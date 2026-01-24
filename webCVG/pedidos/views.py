@@ -115,7 +115,7 @@ def guardar_borrador_pedido(request):
 
                 # DATOS REALES DEL PRODUCTO
                 cursor.execute("""
-                    SELECT nombre, publico
+                    SELECT nombre, presentacion, publico
                     FROM _productos
                     WHERE codigo = %s
                     LIMIT 1
@@ -126,7 +126,8 @@ def guardar_borrador_pedido(request):
                     continue  # producto inválido
 
                 nombre = row[0]
-                precio = Decimal(row[1])   # ← CONVERSIÓN CLAVE
+                presentacion = row[1]
+                precio = Decimal(row[2])   # ← CONVERSIÓN CLAVE
                 cantidad = Decimal(cantidad)
 
                 d1 = Decimal("0.00")
@@ -137,14 +138,18 @@ def guardar_borrador_pedido(request):
                     rounding=ROUND_HALF_UP
 )
                 importe = subtotal
-                observaciones = ""
+                
+                # OBSERVACIONES CORRECTAS
+                observaciones = p.get("observaciones")
+                observaciones = observaciones.strip() if observaciones else None
 
                 cursor.execute(
-                    "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     [
                         data["id_pedido"],
                         p.get("codigo"),
                         nombre,
+                        presentacion,
                         precio,
                         cantidad,
                         d1,
