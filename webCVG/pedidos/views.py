@@ -60,9 +60,6 @@ def continuar_pedido(request, idpedido):
         messages.warning(request, "Este pedido ya no puede modificarse")
         return redirect("menu")
     
-    # Este apartado es para la seleccion multiple 
-    productos_seleccion = utils.get_productos_seleccionados(idpedido)
- 
     # LIMPIAR TABLA TEMPORAL
     utils.limpiar_productos_seleccion(idpedido)
 
@@ -89,8 +86,15 @@ def continuar_pedido(request, idpedido):
         "clientes": cliente,
         "evento": eventos,
         "fecha_pedido": fecha_pedido,
-        "productos_seleccion": productos_seleccion
+        #"productos_seleccion": productos_seleccion
     })
+
+def to_decimal(valor, default="0.00"):
+    try:
+        return Decimal(str(valor))
+    except:
+        return Decimal(default)
+
 
 @login_required
 def guardar_borrador_pedido(request):
@@ -111,40 +115,57 @@ def guardar_borrador_pedido(request):
 
             for p in data.get("productos", []):
 
-                cantidad = to_int(p.get("cantidad"), 1)
+                cantidad = Decimal(to_int(p.get("cantidad"), 1))
 
                 # DATOS REALES DEL PRODUCTO
                 cursor.execute("""
                     SELECT nombre, presentacion, publico
-                    FROM _productos
+                    FROM productos
                     WHERE codigo = %s
                     LIMIT 1
                 """, [p.get("codigo")])
 
                 row = cursor.fetchone()
                 if not row:
-                    continue  # producto inválido
+                    continue
 
                 nombre = row[0]
                 presentacion = row[1]
-                precio = Decimal(row[2])   # ← CONVERSIÓN CLAVE
-                cantidad = Decimal(cantidad)
+                precio = Decimal(row[2])
 
-                d1 = Decimal("0.00")
-                d2 = Decimal("0.00")
+                # PORCENTAJES (SE GUARDAN ASÍ)
+                d1_pct = to_decimal(p.get("d1"))   # ej. 5
+                d2_pct = to_decimal(p.get("d2"))   # ej. 10
+                bonificacion = to_decimal(p.get("bonificacion"))
 
+                # SUBTOTAL
                 subtotal = (precio * cantidad).quantize(
                     Decimal("0.00"),
                     rounding=ROUND_HALF_UP
-)
-                importe = subtotal
-                
-                # OBSERVACIONES CORRECTAS
+                )
+
+                # CÁLCULO INTERNO (NO SE GUARDA)
+                desc1 = (subtotal * d1_pct / Decimal("100")).quantize(
+                    Decimal("0.00"),
+                    rounding=ROUND_HALF_UP
+                )
+
+                desc2 = (subtotal * d2_pct / Decimal("100")).quantize(
+                    Decimal("0.00"),
+                    rounding=ROUND_HALF_UP
+                )
+
+                # IMPORTE FINAL
+                importe = (subtotal - desc1 - desc2 - bonificacion).quantize(
+                    Decimal("0.00"),
+                    rounding=ROUND_HALF_UP
+                )
+
                 observaciones = p.get("observaciones")
                 observaciones = observaciones.strip() if observaciones else None
 
                 cursor.execute(
-                    "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     [
                         data["id_pedido"],
                         p.get("codigo"),
@@ -152,8 +173,9 @@ def guardar_borrador_pedido(request):
                         presentacion,
                         precio,
                         cantidad,
-                        d1,
-                        d2,
+                        bonificacion,
+                        d1_pct,      # SE GUARDA EL %
+                        d2_pct,      # SE GUARDA EL %
                         subtotal,
                         importe,
                         observaciones,
@@ -163,11 +185,30 @@ def guardar_borrador_pedido(request):
 
     return JsonResponse({"ok": True})
 
+
+
 @login_required
 def seleccion_multiple_productos(request, id_pedido):
+
+    ide = request.user.ide
+    idvend = request.user.idvend
+
+    # Reutilizamos la misma lógica que continuar_pedido
+    pedido = utils.get_pedido_activo(id_pedido, idvend, ide)
+
+    if not pedido:
+        messages.error(request, "Pedido inválido")
+        return redirect("menu")
+
+    if pedido["status"] != "PENDIENTE":
+        messages.warning(request, "Este pedido ya no puede modificarse")
+        return redirect("menu")
+
     productos = utils.get_catalogo_productos()
+
     return render(request, "seleccion_multiple.html", {
         "id_pedido": id_pedido,
+        "idcliente": pedido["idcliente"], 
         "productos": productos
     })
 
@@ -181,12 +222,12 @@ def toggle_producto_seleccion(request):
     with connection.cursor() as cursor:
         if data["activo"]:
             cursor.execute("""
-                INSERT IGNORE INTO _pedido_productos_tmp (id_pedido, codigo_producto)
+                INSERT IGNORE INTO pedido_productos_tmp (id_pedido, codigo_producto)
                 VALUES (%s, %s)
             """, [data["id_pedido"], data["codigo"]])
         else:
             cursor.execute("""
-                DELETE FROM _pedido_productos_tmp
+                DELETE FROM pedido_productos_tmp
                 WHERE id_pedido = %s AND codigo_producto = %s
             """, [data["id_pedido"], data["codigo"]])
 
@@ -221,17 +262,18 @@ def buscar_productos(request):
 
 @login_required
 def historico_producto(request):
-    idvend = request.user.idvend
+    ide = request.user.ide
     idcliente = request.GET.get("idcliente")
     codigo = request.GET.get("codigo")
 
     with connection.cursor() as cursor:
         cursor.execute(
             "CALL l_pedidos_productos_historico(%s,%s,%s)",
-            [idcliente, idvend, codigo]
+            [idcliente, ide, codigo]
         )
         rows = cursor.fetchall()
-
+        cursor.nextset()
+        
     data = [
         {
             "fecha": r[0],
@@ -258,7 +300,7 @@ def eliminar_producto_pedido(request):
 
         with connection.cursor() as cursor:
             cursor.execute("""
-                DELETE FROM _pedidos_productos
+                DELETE FROM pedidos_productos
                 WHERE id_pedido = %s
                   AND clave_producto = %s
             """, [data["id_pedido"], data["codigo"]])
@@ -314,7 +356,6 @@ def cancelar_pedido(request, idpedido):
     )
 
     return redirect("menu")
-
 
 # ----- CONSULTAR PEDIDOS ------
 

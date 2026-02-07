@@ -17,23 +17,18 @@
         <table class="table table-hover table-bordered" id="clienteTable">
             <thead class="table-dark text-left size_head">
                 <tr>
-                    <th>#</th>
-                    <th>Giro</th>
+                    <th>Idcp</th>
                     <th>Nombre</th>
-                    <th>Teléfono</th>
-                    <th>Contacto</th>
-                    <th>e-mail</th>
+                    <th>Grupo</th>
+
                 </tr>
             </thead>
             <tbody>
-                {% for proveedor in proveedores %}
+                {% for grupo in grupos %}
                 <tr class="text-left size_body" data-idcliente="{{ cliente.idcliente }}">
-                    <td>{{ proveedor.id }}</td>
-                    <td>{{ proveedor.giro|default_if_none:"" }}</td>
-                    <td>{{ proveedor.nombre|default_if_none:"" }}</td>
-                    <td>{{ proveedor.telefono|default_if_none:"" }}</td>
-                    <td>{{ proveedor.contacto|default_if_none:"" }}</td>
-                    <td>{{ proveedor.contacto_mail|default_if_none:"" }}</td>
+                    <td>{{ grupo.idcp|default_if_none:"" }}</td>
+                    <td>{{ grupo.nombre|default_if_none:"" }}</td>
+                    <td>{{ grupo.grupo|default_if_none:"" }}</td>
                 </tr>
                 {% empty %}
                 <tr>

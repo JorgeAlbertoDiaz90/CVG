@@ -55,16 +55,16 @@ def catalogo_sucursales(request):
 # -------------CATALOGO DE PROVEEDORES-------
 
 @login_required
-def catalogo_proveedores(request):
+def catalogo_grupos(request):
 
     with connection.cursor() as cursor:
         cursor.execute(
-            "CALL l_catalogos_proveedores()"
+            "CALL l_catalogos_grupos()"
         )
-        proveedores = utils.dictfetchall(cursor)
+        grupos = utils.dictfetchall(cursor)
     
-    return render(request,'catalogo_proveedores.html', {
-        'proveedores': proveedores
+    return render(request,'catalogo_grupos.html', {
+        'grupos': grupos
     })
 
 #---------------CATALOGO DE CLIENTES--------

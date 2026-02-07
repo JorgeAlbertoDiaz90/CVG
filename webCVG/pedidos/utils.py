@@ -42,7 +42,7 @@ def get_catalogo_clientes(is_staff, idvend):
         return dictfetchall(cursor)
      
 
-# --- MUESTRA LOS PEDIDOS QUE ESTAN ACTIVOS SIN ENVIAR ---
+# --- MUESTRA LOS PEDIDOS QUE ESTAN ACTIVOS SIN ENVIAR O EN ESTATUS PENDIENTE ---
 
 def get_pedido_activo(idpedido, idvend, ide):
     with connection.cursor() as cursor:
@@ -69,7 +69,7 @@ def get_pedido_activo_global(idvend, ide):
     with connection.cursor() as cursor:
         cursor.execute("""
             SELECT id
-            FROM _pedidos
+            FROM pedidos
             WHERE idvend = %s
               AND ide = %s
               AND status = 'PENDIENTE'
@@ -88,29 +88,11 @@ def cancelar_pedido(idpedido, idvend, ide):
             [idpedido, idvend, ide]
         )
 
-
-def get_productos_seleccionados(id_pedido):
-    with connection.cursor() as cursor:
-        cursor.execute("""
-           SELECT
-                p.codigo,
-                p.nombre,
-                l.descripcion,
-                l.linea,
-                p.publico as precio_unitario
-            FROM _pedido_productos_tmp t
-            INNER JOIN _productos p ON p.codigo = t.codigo_producto
-            INNER JOIN _lineas l ON l.idcl = p.idcl
-            WHERE t.id_pedido = %s;
-        """, [id_pedido])
-        return dictfetchall(cursor)
-
-
 # ESTA TABLA ELIMINA LOS DATOS TEMPORALES
 def limpiar_productos_seleccion(idpedido):
     with connection.cursor() as cursor:
         cursor.execute("""
-            DELETE FROM _pedido_productos_tmp
+            DELETE FROM pedido_productos_tmp
             WHERE id_pedido = %s
         """, [idpedido])
 

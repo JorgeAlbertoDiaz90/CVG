@@ -596,6 +596,8 @@ function confirmarEliminarProducto() {
 function calcularFila(el) {
     let tr = el.closest("tr");
 
+    aplicarReglasBeneficios(tr); // SE APLICAN LOS BENEFICIOS
+
     let precio = parseFloat(
         tr.querySelector(".precio").dataset.valor
     ) || 0;
@@ -608,10 +610,10 @@ function calcularFila(el) {
 
     let desc1 = subtotal * (d1 / 100);
     let desc2 = subtotal * (d2 / 100);
+    let bonif  = parseFloat(tr.querySelector(".bon").value) || 0;
 
-    let importe = subtotal - desc1 - desc2;
+    let importe = subtotal - desc1 - desc2 - bonif;
 
-    // Mostrar FORMATEADO
     tr.querySelector(".subtotal-input").value = money_es(subtotal);
     tr.querySelector(".importe-input").value  = money_es(importe);
 
@@ -619,6 +621,39 @@ function calcularFila(el) {
     autoGuardarBorrador();
 }
 
+function aplicarReglasBeneficios(tr) {
+
+    const bon = tr.querySelector(".bon");
+    const d1  = tr.querySelector(".d1");
+    const d2  = tr.querySelector(".d2");
+
+    const bonVal = parseFloat(bon.value) || 0;
+    const d1Val  = parseFloat(d1.value) || 0;
+    const d2Val  = parseFloat(d2.value) || 0;
+
+    // Reset: habilitar todo
+    bon.disabled = false;
+    d1.disabled  = false;
+    d2.disabled  = false;
+
+    // D1 + D2 = deshabilita Bonificación
+    if (d1Val > 0 && d2Val > 0) {
+        bon.value = 0;
+        bon.disabled = true;
+    }
+
+    // Bonificación + D1 = deshabilita D2
+    if (bonVal > 0 && d1Val > 0) {
+        d2.value = 0;
+        d2.disabled = true;
+    }
+    
+    // Bonificacion = deshabilitar D2
+    if (bonVal > 0) {
+        d2.value = 0;
+        d2.disabled = true;
+    }
+}
 
 // =====================================================
 // TOTAL GENERAL
@@ -666,8 +701,11 @@ function guardarPedido() {
             nombre: tr.cells[0].innerText.split(" - ")[1],
             precio: tr.querySelector(".precio").value.replace(/,/g, ''),
             cantidad: tr.querySelector(".cantidad").value,
+
+            bonificacion: tr.querySelector(".bon").value,
             d1: tr.querySelector(".d1").value,
             d2: tr.querySelector(".d2").value,
+
             subtotal: tr.querySelector(".subtotal-input").value.replace(/,/g, ''),
             importe: tr.querySelector(".importe-input").value.replace(/,/g, ''),
             observaciones: tr.getAttribute("data-comentario")
@@ -683,7 +721,7 @@ function guardarPedido() {
         body: JSON.stringify(pedido)
     })
     .then(r => r.json())
-    .then(resp => {
+    .then(resp => { 
         if (resp.ok) {
             alert("Pedido guardado con folio " + resp.id_pedido);
             window.location.href = "{% url 'consultar_pedidos' %}";
@@ -777,7 +815,6 @@ function confirmarCancelacion() {
     }
 }
 
-
 // ------- AUTO GUARDADO DE PRODUCTOS -----
 
 let autosaveTimer = null;
@@ -799,6 +836,7 @@ function autoGuardarBorrador() {
                 nombre: tr.cells[0].innerText.split(" - ")[1],
                 precio: tr.querySelector(".precio").value.replace(/,/g, ''),
                 cantidad: tr.querySelector(".cantidad").value,
+                bonificacion: tr.querySelector(".bon").value,
                 d1: tr.querySelector(".d1").value,
                 d2: tr.querySelector(".d2").value,
                 subtotal: tr.querySelector(".subtotal-input").value.replace(/,/g, ''),

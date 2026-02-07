@@ -42,6 +42,8 @@
     </div>
 
     <input type="hidden" id="id_pedido" value="{{ id_pedido }}">
+    <input type="hidden" id="id_cliente" value="{{ idcliente }}">
+
 
     <!-- BOTÓN FINAL -->
     <div class="sticky-footer mt-3">
@@ -53,6 +55,30 @@
         </button>
     </div>
 
+</div>
+
+<!-- MODAL HISTORICO PRODUCTO -->
+<div class="modal fade" id="modalHistoricoProducto" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable modal-historico-wide">
+    <div class="modal-content modal-historico">
+
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+            Histórico del producto
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div id="historicoBody" class="historico-scroll">
+            <div class="text-center text-muted">
+                Cargando histórico...
+            </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <style>
@@ -175,38 +201,46 @@ function cargarProductos(query = "") {
                 const visible = seleccionados[p.codigo] ? "block" : "none";
 
                 html += `
-                    <label class="producto-item d-flex align-items-center gap-3">
+                    <label class="producto-item align-items-center gap-3">
+
                         <input class="form-check-input"
                             type="checkbox"
                             data-codigo="${p.codigo}"
                             ${checked}
                             onchange="toggleProducto(this)">
 
-                        <div class="producto-texto producto-linea">
+                        <!-- TEXTO -->
+                        <div class="producto-texto producto-linea flex-grow-1">
                             <span class="txt-codigo">${p.codigo}</span>
                             <span class="txt-sep">•</span>
-
                             <span class="txt-nombre">${p.nombre}</span>
-
                             <span class="txt-extra">
                                 (${p.presentacion || "—"} | ${p.linea || "—"})
                             </span>
-                            
-
-                            <span class="txt-precio">
-                                $ ${money_es(p.publico)}
-                            </span>
                         </div>
 
+                        <!-- PRECIO -->
+                        <span class="txt-precio ms-2">
+                            $ ${money_es(p.publico)}
+                        </span>
 
+                        <!-- CANTIDAD -->
                         <input type="number"
-                            class="form-control cantidad-input ms-auto"
+                            class="form-control cantidad-input"
                             data-codigo="${p.codigo}"
                             value="${cantidad}"
                             min="1"
-                            style="width:90px; display:${visible}"
+                            style="display:${visible}"
                             onchange="cambiarCantidad(this)">
+
+                            <!-- BOTÓN HISTÓRICO -->
+                        <button type="button"
+                            class="btn btn-outline-primary btn-sm"
+                            onclick="verHistorico(event, '${p.codigo}')">
+                            <i class="bi bi-clock-history"></i>
+                        </button>
                     </label>
+
                 `;
             });
 
@@ -275,6 +309,85 @@ function finalizarSeleccion() {
         window.location.href =
             `/pedidos/continuar_pedido/${document.getElementById("id_pedido").value}/`;
     });
+}
+
+// AQUI SE TODO LO NECESARIO PARA EL MODAL DE HISTORICO DE CADA PRODUCTO
+
+const modalHistorico = new bootstrap.Modal(
+    document.getElementById("modalHistoricoProducto")
+);
+
+function verHistorico(event, codigo) {
+    event.stopPropagation(); 
+
+    const modalHistorico = new bootstrap.Modal(
+        document.getElementById("modalHistoricoProducto")
+    );
+
+    modalHistorico.show();
+
+    const idcliente = document.getElementById("id_cliente").value;
+    const body = document.getElementById("historicoBody");
+
+    if (!idcliente) {
+        body.innerHTML = `
+            <div class="text-center text-danger">
+                Pedido sin cliente asociado
+            </div>`;
+        return;
+    }
+
+    body.innerHTML = `
+        <div class="text-center text-muted">
+            <i class="bi bi-arrow-repeat"></i> Cargando histórico...
+        </div>
+    `;
+
+    fetch(`/pedidos/historico_producto/?codigo=${codigo}&idcliente=${idcliente}`)
+        .then(r => r.json())
+        .then(data => {
+
+            if (!data || data.length === 0) {
+                body.innerHTML = `
+                    <div class="text-center text-muted">
+                        No hay histórico para este producto
+                    </div>`;
+                return;
+            }
+
+            let html = `
+                <table class="table table-sm historico-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Folio Venta</th>
+                            <th>Precio</th>
+                            <th>Cant</th>
+                            <th>D1</th>
+                            <th>D2</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            data.forEach(r => {
+                html += `
+                    <tr>
+                        <td>${r.fecha}</td>
+                        <td>${r.pedido}</td>
+                        <td>$${money_es(r.precio)}</td>
+                        <td>${r.cantidad}</td>
+                        <td>${r.d1}%</td>
+                        <td>${r.d2}%</td>
+                        <td>$${money_es(r.subtotal)}</td>
+                    </tr>
+                `;
+            });
+
+            html += `</tbody></table>`;
+            body.innerHTML = html;
+        });
 }
 
 </script>

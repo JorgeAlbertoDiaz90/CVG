@@ -28,9 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
 
     # '192.168.1.40','localhost'
-    # '192.168.1.9','localhost'
-    # '192.168.1.76','localhost'
-    
+
 ]
 
 # Application definition
@@ -81,7 +79,6 @@ WSGI_APPLICATION = 'webCVG.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
 
 
 # Password validation
