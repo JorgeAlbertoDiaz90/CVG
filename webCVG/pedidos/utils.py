@@ -8,21 +8,22 @@ def dictfetchall(cursor):
         for row in cursor.fetchall()
     ]
 
-def get_catalogo_productos():
+def get_catalogo_productos(idev, ide):
     with connection.cursor() as cursor:
-        cursor.execute("CALL l_catalogos_productos()")
+        cursor.execute("CALL l_opmulti_productos(%s, %s)", [idev, ide])
         return dictfetchall(cursor)
 
+
 # MUESTRA LOS EVENTOS PARA PODER ASIGNARLOS DENTRO DEL PEDIDO
-def get_eventos(): 
+def get_eventos(idcliente): 
     with connection.cursor() as cursor:
-        cursor.execute("CALL l_eventos()")
+        cursor.execute("CALL l_eventos(%s)", [idcliente])
         return cursor.fetchall()
     
 # MUESTRA LOS DATOS DEL CLIENTE PREVIAMENTE SELECCIONADO
-def get_clientes(ide, idcliente):
+def get_clientes(idcliente):
     with connection.cursor() as cursor:
-            cursor.execute("CALL c_cliente(%s, %s)", [ide, idcliente])
+            cursor.execute("CALL c_cliente(%s)", [idcliente])
             row = cursor.fetchone()
                 
             if not row:
@@ -41,7 +42,7 @@ def get_catalogo_clientes(is_staff, idvend):
         cursor.execute("CALL l_clientes(%s, %s)", [is_staff, idvend])
         return dictfetchall(cursor)
      
-
+     
 # --- MUESTRA LOS PEDIDOS QUE ESTAN ACTIVOS SIN ENVIAR O EN ESTATUS PENDIENTE ---
 
 def get_pedido_activo(idpedido, idvend, ide):
@@ -97,3 +98,4 @@ def limpiar_productos_seleccion(idpedido):
         """, [idpedido])
 
 
+ 

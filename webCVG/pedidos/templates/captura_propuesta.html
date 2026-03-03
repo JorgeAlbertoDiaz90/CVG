@@ -50,11 +50,12 @@
     <div class="col-12 col-md-3 col-lg-2">
         <label class="label-title">Evento:</label>
         <select id="evento" class="form-select input-black">
+            <option value="0">Sin evento</option>
             {% for e in evento %}
-            <option value="{{ e.1 }}"
-                {% if pedido.evento == e.1 %}selected{% endif %}>
-                {{ e.1 }} - {{ e.0 }}
-            </option>
+                <option value="{{ e.0 }}"
+                    {% if pedido.n_evento == e.0 %}selected{% endif %}>
+                    {{ e.1 }}
+                </option>
             {% endfor %}
         </select>
     </div>
@@ -140,6 +141,46 @@
         <i class="bi bi-x-circle"></i> Cancelar
     </button>
 </div>
+
+<!-- MODAL CAMBIO DE EVENTO -->
+<div class="modal fade" id="modalCambioEvento" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="text-align: center;"> 
+
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle"></i>
+          Cambiar evento
+        </h5>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-2 fw-semibold">
+          Estás a punto de cambiar el evento.
+        </p>
+        <p class="mb-0 text-muted">
+          Todos los productos agregados al pedido serán eliminados.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm"
+                data-bs-dismiss="modal">
+          Cancelar
+        </button>
+
+        <button class="btn btn-danger btn-sm"
+                onclick="confirmarCambioEvento()">
+          Continuar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
 <!-- MODAL HISTORICO DEL PRODUCTO -->
 <div class="modal fade" id="modalHistorico" tabindex="-1"> 
@@ -267,6 +308,117 @@
 // =====================================================
 let filaActualComentario = null;
 let filaActualEliminar = null;
+let eventoAnterior = document.getElementById("evento").value;
+let nuevoEventoSeleccionado = eventoAnterior;
+
+// DETECTA EL CAMBIO DEL SELECT
+document.getElementById("evento").addEventListener("change", function () {
+
+    let filas = document.querySelectorAll("#tabla-producto tbody tr");
+    nuevoEventoSeleccionado = this.value;
+
+    // Si no hay productos, solo actualizar
+    if (filas.length === 0) {
+        eventoAnterior = nuevoEventoSeleccionado;
+        guardarEventoSolo();
+        return;
+    }
+
+    // Regresar visualmente al anterior mientras decide
+    this.value = eventoAnterior;
+
+    // Mostrar modal
+    new bootstrap.Modal(
+        document.getElementById("modalCambioEvento")
+    ).show();
+});
+
+function guardarEventoSolo() {
+
+    let pedido = {
+        id_pedido: document.getElementById("id_pedido").value,
+        evento: document.getElementById("evento").value,
+        observaciones: document.getElementById("observaciones").value,
+        total: document.getElementById("totalGeneral").innerText.replace(/,/g, ''),
+        productos: []
+    };
+
+    fetch("{% url 'guardar_borrador_pedido' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(pedido)
+    });
+}
+
+// CON ESTA FUNCION SE CONFIRMA SI DESEA CAMBIAR DE EVENTO 
+function confirmarCambioEvento() {
+
+    // Cambiar el select al nuevo evento
+    document.getElementById("evento").value = nuevoEventoSeleccionado;
+    eventoAnterior = nuevoEventoSeleccionado;
+
+    // Eliminar productos
+    document.querySelector("#tabla-producto tbody").innerHTML = "";
+
+    // Reset total
+    calcularTotalGeneral();
+
+    // Guardar borrador vacío
+    autoGuardarBorrador();
+
+    // Cerrar modal
+    bootstrap.Modal.getInstance(
+        document.getElementById("modalCambioEvento")
+    ).hide();
+}
+
+function confirmarCambioEvento() {
+
+    let idPedido = document.getElementById("id_pedido").value;
+
+    fetch("{% url 'limpiar_detalle' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": getCookie("csrftoken")
+        },
+        body: "id_pedido=" + idPedido
+    })
+    .then(r => r.json())
+    .then(data => {
+
+        // Cambiar evento
+        document.getElementById("evento").value = nuevoEventoSeleccionado;
+        eventoAnterior = nuevoEventoSeleccionado;
+
+        // Limpiar tabla visual
+        document.querySelector("#tabla-producto tbody").innerHTML = "";
+
+        calcularTotalGeneral();
+
+        bootstrap.Modal.getInstance(
+            document.getElementById("modalCambioEvento")
+        ).hide();
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        let cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            let cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 
 // FUNCION QUE LE DA FORMATO A LAS CIFRAS GRANDES 
 function money_es(value) {
@@ -281,8 +433,11 @@ function money_es(value) {
 // =====================================================
 // BUSCADOR DE PRODUCTOS Y MUESTRA LOS DATOS QUE SE AGREGAN DENTRO DEL PEDIDO
 // =====================================================
-const buscador = document.getElementById("buscador");
-const resultados = document.getElementById("resultados");
+document.getElementById("evento").addEventListener("change", function(){
+    document.getElementById("buscador").value = "";
+    document.getElementById("resultados").innerHTML = "";
+});
+
 
 buscador.addEventListener("keyup", function () {
     let query = this.value.trim();
@@ -292,7 +447,12 @@ buscador.addEventListener("keyup", function () {
         return;
     }
 
-    fetch("{% url 'buscar_productos' %}?q=" + encodeURIComponent(query))
+    let idev = document.getElementById("evento").value;
+
+    fetch("{% url 'buscar_productos' %}?q=" 
+        + encodeURIComponent(query) 
+        + "&idev=" + idev)
+
         .then(r => r.json())
         .then(data => {
 
@@ -312,7 +472,7 @@ buscador.addEventListener("keyup", function () {
 
                         <div class="product-info">
                             <strong>
-                                ${resaltar(p.codigo)} - ${resaltar(p.nombre, query)}
+                                ${resaltar(p.codigo, query)} - ${resaltar(p.nombre, query)} - ${resaltar(p.descripcion, query)}
                             </strong><br>
                             <small class="text-muted">
                                 ${p.presentacion} | ${p.linea}
@@ -336,7 +496,10 @@ buscador.addEventListener("keyup", function () {
                                     '${p.presentacion}',
                                     '${p.publico}',
                                     '${p.descripcion}',
-                                    '${p.linea}'
+                                    '${p.linea}',
+                                    '${p.bon || 0}',
+                                    '${p.d1 || 0}',
+                                    '${p.d2 || 0}'
                                 )">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
@@ -352,7 +515,7 @@ buscador.addEventListener("keyup", function () {
         });
 });
 
-// Resalta el texto buscado
+// RESALTA EL TEXTO BUSCADO
 function resaltar(texto, busqueda) {
     let regex = new RegExp(`(${busqueda})`, "ig");
     return texto.replace(regex, `<mark>$1</mark>`);
@@ -361,17 +524,30 @@ function resaltar(texto, busqueda) {
 // FUNCION PARA LA SELECCION MULTIPLE
 
 function irSeleccionMultiple() {
+    guardarEventoSolo();
+
     const idPedido = document.getElementById("id_pedido").value;
-    window.location.href = `/pedidos/seleccion_multiple/${idPedido}/`;
+    const idev = document.getElementById("evento").value;
+
+    window.location.href =
+        `/pedidos/seleccion_multiple/${idPedido}/?idev=${idev}`;
 }
 
-
 // =====================================================
-// AGREGAR PRODUCTO PARA CUANDO TU VUELVAS A CARGAR EL PEDIDO LOS PRODUCTOS SIGAN APARECIENDO
+// Este apartado es para agregar los datos de los productos para el carrito de los pedidos
 // =====================================================
 
-
-function agregarProducto(codigo, nombre, presentacion, publico, descripcion, linea) {
+function agregarProducto(
+    codigo,
+    nombre,
+    presentacion,
+    publico,
+    descripcion,
+    linea,
+    bon = 0,
+    d1 = 0,
+    d2 = 0
+) {
     let tbody = document.querySelector("#tabla-producto tbody");
 
     let fila = document.createElement("tr");
@@ -416,19 +592,22 @@ function agregarProducto(codigo, nombre, presentacion, publico, descripcion, lin
 
         <td>
             <input class="form-control form-control-sm bon"
-                   value="0"
+                   data-valor="${bon}"
+                   value="${bon}"
                    onchange="calcularFila(this)">
         </td>
 
         <td>
             <input class="form-control form-control-sm d1"
-                   value="0"
+                   data-valor="${d1}"
+                   value="${d1}"
                    onchange="calcularFila(this)">
         </td>
 
         <td>
             <input class="form-control form-control-sm d2"
-                   value="0"
+                   data-valor="${d2}"
+                   value="${d2}"
                    onchange="calcularFila(this)">
         </td>
 
@@ -486,13 +665,17 @@ function guardarComentario() {
 
     calcularFila(
         filaActualComentario.querySelector(".cantidad")
-    ); // 👈 fuerza autosave
+    ); // fuerza autosave
 
     bootstrap.Modal.getInstance(
         document.getElementById("modalComentario")
     ).hide();
 }
 
+function formatearFecha(fechaISO) {
+    let f = new Date(fechaISO);
+    return f.toLocaleString('es-MX');
+}
 
 // =====================================================
 // ABRIR MODAL DE HISTORICO
@@ -518,8 +701,8 @@ function abrirModalHistorico(btn) {
                 data.forEach(h => {
                     tbody.innerHTML += `
                         <tr>
-                            <td>${h.fecha}</td>
-                            <td>${h.pedido}</td>
+                            <td>${formatearFecha(h.fecha)}</td>
+                            <td>${h.cliente}</td>
                             <td>${h.razon_social}</td>
                             <td>${h.clave}</td>
                             <td>${h.nombre}</td>
@@ -596,7 +779,7 @@ function confirmarEliminarProducto() {
 function calcularFila(el) {
     let tr = el.closest("tr");
 
-    aplicarReglasBeneficios(tr); // SE APLICAN LOS BENEFICIOS
+    aplicarReglasBeneficios(tr);
 
     let precio = parseFloat(
         tr.querySelector(".precio").dataset.valor
@@ -605,16 +788,21 @@ function calcularFila(el) {
     let cant = parseFloat(tr.querySelector(".cantidad").value) || 0;
     let d1   = parseFloat(tr.querySelector(".d1").value) || 0;
     let d2   = parseFloat(tr.querySelector(".d2").value) || 0;
+    let bon  = parseFloat(tr.querySelector(".bon").value) || 0;
 
-    let subtotal = precio * cant;
+    // ===== DESCUENTO 1 =====
+    let desc1 = precio * (d1 / 100);
+    let base1 = precio - desc1;
 
-    let desc1 = subtotal * (d1 / 100);
-    let desc2 = subtotal * (d2 / 100);
-    let bonif  = parseFloat(tr.querySelector(".bon").value) || 0;
+    // ===== DESCUENTO 2 (COMO FACTOR) =====
+    let factor_d2 = 1 + (d2 / 100);
+    let precioNeto = factor_d2 > 0 ? base1 / factor_d2 : base1;
 
-    let importe = subtotal - desc1 - desc2 - bonif;
+    // ===== IMPORTES =====
+    let subtotalUnitario = precioNeto;
+    let importe = (precioNeto * cant) - bon;
 
-    tr.querySelector(".subtotal-input").value = money_es(subtotal);
+    tr.querySelector(".subtotal-input").value = money_es(subtotalUnitario);
     tr.querySelector(".importe-input").value  = money_es(importe);
 
     calcularTotalGeneral();
@@ -780,18 +968,21 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Productos seleccionados desde selección múltiple
     const seleccionados = {{ productos_seleccion|default:"[]"|safe }};
 
-    seleccionados.forEach(p => {
-        agregarProducto(
-            p.codigo,
-            p.nombre,
-            "",
-            p.precio_unitario,
-            p.descripcion,
-            p.linea
-        );
-    });
+        seleccionados.forEach(p => {
+            agregarProducto(
+                p.codigo,
+                p.nombre,
+                "",
+                p.precio_unitario,
+                p.descripcion,
+                p.linea,
+                p.bon,
+                p.d1,
+                p.d2
+            );
+        });
 
-});
+    });
 
 // ----- GUARDA EL PEDIDO -------
 let pedido = {
@@ -827,6 +1018,9 @@ function autoGuardarBorrador() {
 
         let pedido = {
             id_pedido: document.getElementById("id_pedido").value,
+            evento: document.getElementById("evento").value,
+            observaciones: document.getElementById("observaciones").value,
+            total: document.getElementById("totalGeneral").innerText.replace(/,/g, ''),
             productos: []
         };
 
@@ -852,9 +1046,16 @@ function autoGuardarBorrador() {
                 "X-CSRFToken": "{{ csrf_token }}"
             },
             body: JSON.stringify(pedido)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.total !== undefined) {
+                document.getElementById("totalGeneral").innerText =
+                    money_es(data.total);
+            }
         });
 
-    }, 800); // debounce
+    }, 2000); // debounce
 }
 
 </script>

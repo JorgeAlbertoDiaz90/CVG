@@ -14,37 +14,88 @@ from decimal import Decimal, ROUND_HALF_UP
 
 @login_required
 def lista_cliente(request):
+        is_staff = request.user.is_staff
+        idvend = request.user.idvend
+
+        search = request.GET.get('search', '').strip()
+        page = int(request.GET.get('page', 1))
+
+        limit = 20
+        offset = (page - 1) * limit
+
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "CALL l_clientes(%s, %s, %s, %s, %s)",
+                [is_staff, idvend, search, limit, offset]
+            )
+
+            total = utils.dictfetchall(cursor)[0]['total']
+            cursor.nextset()
+            clientes = utils.dictfetchall(cursor)
+
+        total_pages = (total + limit - 1) // limit
+        rango = range(max(1, page - 2), min(total_pages + 1, page + 3))
+
+        return render(request, 'catalogo_clientes.html', {
+            'clientes': clientes,
+            'page': page,
+            'total_pages': total_pages,
+            'rango': rango,
+            'search': search
+})
+
+@login_required
+def lista_clientes_ajax(request):
+
     is_staff = request.user.is_staff
     idvend = request.user.idvend
 
-    try:
-        clientes = utils.get_catalogo_clientes(is_staff, idvend) # FUNCIONANDO
-    except Exception as e:
-        messages.error(request, f"Error al cargar los clientes: {str(e)}")
-    
-    return render(request,'lista_cliente.html', {
-        'clientes': clientes
+    search = request.GET.get('search', '').strip()
+    page = int(request.GET.get('page', 1))
+
+    limit = 20
+    offset = (page - 1) * limit
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL l_clientes(%s, %s, %s, %s, %s)",
+            [is_staff, idvend, search, limit, offset]
+        )
+
+        total = utils.dictfetchall(cursor)[0]['total']
+        cursor.nextset()
+        clientes = utils.dictfetchall(cursor)
+
+    total_pages = (total + limit - 1) // limit
+
+    return JsonResponse({
+        "clientes": clientes,
+        "page": page,
+        "total_pages": total_pages
     })
 
 
 # EN ESTE APARTADO SE CAPTURAN LOS DATOS PRINCIPALES DEL CLIENTE UNA VEZ SELECCIONADO EN EL PASO ANTERIOR Y SE REALIZA EL LLENADO AUTOMATICO
+
+from django.utils import timezone
 
 @login_required
 def captura_propuesta(request, idcliente):
     ide = request.user.ide
     idvend = request.user.idvend
 
+    # Fecha actual en UTC (correcto cuando USE_TZ = True)
+    fecha_actual = timezone.localtime(timezone.now())
+
     with connection.cursor() as cursor:
         cursor.execute(
-            "CALL a_pedido_inicial(%s, %s, %s)",
-            [idcliente, ide, idvend]
+            "CALL a_pedido_inicial(%s, %s, %s, %s)",
+            [idcliente, ide, idvend, fecha_actual]
         )
         result = utils.dictfetchall(cursor)
 
-    # id del pedido creado o existente
     idpedido = result[0]["id"]
 
-    # redirección correcta
     return redirect("continuar_pedido", idpedido=idpedido)
 
 # PARA ESTE APARTADO ES LA CONTINUACION DE ALGUN PEDIDO QUE SE MANTENGA EN ESTATUS EN PENDIENTE
@@ -64,8 +115,8 @@ def continuar_pedido(request, idpedido):
     utils.limpiar_productos_seleccion(idpedido)
 
     productos = utils.get_productos_pedido_activo(idpedido, ide) # FUNCIONANDO
-    cliente = utils.get_clientes(ide, pedido["idcliente"]) # FUNCIONANDO
-    eventos = utils.get_eventos() # FUNCIONANDO
+    cliente = utils.get_clientes(pedido["idcliente"]) # FUNCIONANDO
+    eventos = utils.get_eventos(pedido["idcliente"]) # FUNCIONANDO
 
     fecha_raw = pedido.get("fecha")
 
@@ -95,7 +146,6 @@ def to_decimal(valor, default="0.00"):
     except:
         return Decimal(default)
 
-
 @login_required
 def guardar_borrador_pedido(request):
     if request.method != "POST":
@@ -110,14 +160,32 @@ def guardar_borrador_pedido(request):
         except:
             return default
 
+    def to_decimal(valor, default="0"):
+        try:
+            return Decimal(str(valor))
+        except:
+            return Decimal(default)
+
     with transaction.atomic():
         with connection.cursor() as cursor:
+
+            cursor.execute("""
+                UPDATE pedidos
+                SET n_evento = COALESCE(%s, n_evento),
+                    observaciones = COALESCE(%s, observaciones),
+                    total = %s
+                WHERE id = %s
+            """, [
+                data.get("evento"),
+                data.get("observaciones"),
+                data.get("total", 0),
+                data["id_pedido"]
+            ])
 
             for p in data.get("productos", []):
 
                 cantidad = Decimal(to_int(p.get("cantidad"), 1))
 
-                # DATOS REALES DEL PRODUCTO
                 cursor.execute("""
                     SELECT nombre, presentacion, publico
                     FROM productos
@@ -129,43 +197,45 @@ def guardar_borrador_pedido(request):
                 if not row:
                     continue
 
-                nombre = row[0]
-                presentacion = row[1]
-                precio = Decimal(row[2])
+                nombre, presentacion, precio = row
+                precio = Decimal(precio)
 
-                # PORCENTAJES (SE GUARDAN ASÍ)
-                d1_pct = to_decimal(p.get("d1"))   # ej. 5
-                d2_pct = to_decimal(p.get("d2"))   # ej. 10
+                # Porcentajes
+                d1_pct = to_decimal(p.get("d1"))
+                d2_pct = to_decimal(p.get("d2"))
                 bonificacion = to_decimal(p.get("bonificacion"))
 
-                # SUBTOTAL
-                subtotal = (precio * cantidad).quantize(
-                    Decimal("0.00"),
-                    rounding=ROUND_HALF_UP
-                )
+                # ===== DESCUENTO 1 UNITARIO =====
+                desc1_unit = precio * d1_pct / Decimal("100")
+                base1 = precio - desc1_unit
 
-                # CÁLCULO INTERNO (NO SE GUARDA)
-                desc1 = (subtotal * d1_pct / Decimal("100")).quantize(
-                    Decimal("0.00"),
-                    rounding=ROUND_HALF_UP
-                )
+                # ===== DESCUENTO 2 UNITARIO (factor) =====
+                factor_d2 = Decimal("1") + (d2_pct / Decimal("100"))
+                precio_neto = base1 / factor_d2 if factor_d2 > 0 else base1
 
-                desc2 = (subtotal * d2_pct / Decimal("100")).quantize(
-                    Decimal("0.00"),
-                    rounding=ROUND_HALF_UP
-                )
+                # Subtotal UNITARIO
+                subtotal = precio_neto
 
-                # IMPORTE FINAL
-                importe = (subtotal - desc1 - desc2 - bonificacion).quantize(
-                    Decimal("0.00"),
-                    rounding=ROUND_HALF_UP
-                )
+                # Importe TOTAL
+                importe = (subtotal * cantidad) - bonificacion
+
+                # ===== DESCUENTOS TOTALES (por cantidad) =====
+                desc2_unit = base1 - precio_neto
+
+                desc1 = desc1_unit * cantidad
+                desc2 = desc2_unit * cantidad
+
+                # ===== Redondeo final =====
+                subtotal = subtotal.quantize(Decimal("0.00"), rounding=ROUND_HALF_UP)
+                desc1 = desc1.quantize(Decimal("0.00"), rounding=ROUND_HALF_UP)
+                desc2 = desc2.quantize(Decimal("0.00"), rounding=ROUND_HALF_UP)
+                importe = importe.quantize(Decimal("0.00"), rounding=ROUND_HALF_UP)
 
                 observaciones = p.get("observaciones")
                 observaciones = observaciones.strip() if observaciones else None
 
                 cursor.execute(
-                    "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "CALL a_pedido_producto(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     [
                         data["id_pedido"],
                         p.get("codigo"),
@@ -174,8 +244,10 @@ def guardar_borrador_pedido(request):
                         precio,
                         cantidad,
                         bonificacion,
-                        d1_pct,      # SE GUARDA EL %
-                        d2_pct,      # SE GUARDA EL %
+                        d1_pct,
+                        desc1,
+                        d2_pct,
+                        desc2,
                         subtotal,
                         importe,
                         observaciones,
@@ -185,6 +257,14 @@ def guardar_borrador_pedido(request):
 
     return JsonResponse({"ok": True})
 
+@login_required
+def limpiar_detalle_pedido(request):
+        id_pedido = request.POST.get("id_pedido")
+
+        with connection.cursor() as cursor:
+            cursor.execute("CALL d_limpiar_productos_pedido(%s)", [id_pedido])
+
+        return JsonResponse({"ok": True})
 
 
 @login_required
@@ -193,7 +273,6 @@ def seleccion_multiple_productos(request, id_pedido):
     ide = request.user.ide
     idvend = request.user.idvend
 
-    # Reutilizamos la misma lógica que continuar_pedido
     pedido = utils.get_pedido_activo(id_pedido, idvend, ide)
 
     if not pedido:
@@ -204,13 +283,18 @@ def seleccion_multiple_productos(request, id_pedido):
         messages.warning(request, "Este pedido ya no puede modificarse")
         return redirect("menu")
 
-    productos = utils.get_catalogo_productos()
+    # obtener evento desde querystring
+    idev = int(request.GET.get("idev", 0))
+
+    productos = utils.get_catalogo_productos(idev, ide)
 
     return render(request, "seleccion_multiple.html", {
         "id_pedido": id_pedido,
-        "idcliente": pedido["idcliente"], 
-        "productos": productos
+        "idcliente": pedido["idcliente"],
+        "productos": productos,
+        "idev": idev
     })
+
 
 @login_required
 def toggle_producto_seleccion(request):
@@ -235,11 +319,14 @@ def toggle_producto_seleccion(request):
 
 
 # PARA ESTE APARTADO SE REALIZARA LA BUSQUEDA DE PRODUCTOS POR MEDIO DE UN PROCEDIMIENTO ALMACENADO
+@login_required
 def buscar_productos(request):
     q = request.GET.get("q", "")
+    idev = request.GET.get("idev")
+    ide = request.user.ide
 
     with connection.cursor() as cursor:
-        cursor.execute("CALL b_productos(%s)", [q])
+        cursor.execute("CALL b_productos_evento(%s, %s, %s)", [q, ide, idev])
         rows = cursor.fetchall()
 
     resultado = [
@@ -249,9 +336,12 @@ def buscar_productos(request):
             "linea": r[2],
             "descripcion": r[3],
             "presentacion": r[4],
-            "iva": r[5],
-            "ieps": r[6],
-            "publico": r[7],
+            "bon": r[5],
+            "d1": r[6],
+            "d2": r[7],
+            "iva": r[8],
+            "ieps": r[9],
+            "publico": r[10],
         }
         for r in rows
     ]
@@ -277,7 +367,7 @@ def historico_producto(request):
     data = [
         {
             "fecha": r[0],
-            "pedido": r[1],
+            "cliente": r[1],
             "razon_social": r[2],
             "clave": r[3],
             "nombre": r[4],
@@ -314,18 +404,21 @@ def eliminar_producto_pedido(request):
 def guardar_pedido(request):
     if request.method == "POST":
         data = json.loads(request.body)
-        ide = request.user.ide
+
+        # Si no viene evento o viene vacío -> 0
+
+        evento = data.get("evento")
+        if evento in (None, "", "null"):
+            evento = 0
 
         with transaction.atomic():
             with connection.cursor() as cursor:
-                
-                # FINALIZAR PEDIDO
                 cursor.execute(
                     "CALL a_pedido_final(%s,%s,%s,%s,%s)",
                     [
                         data["id_pedido"],
                         data["ruta"],
-                        data["evento"],
+                        int(evento),  # aseguramos entero
                         data["observaciones"],
                         data["total"]
                     ]
@@ -361,25 +454,70 @@ def cancelar_pedido(request, idpedido):
 
 @login_required
 def consulta_pedidos(request):
+
     idvend = request.user.idvend
-    is_staff = int(request.user.is_staff)  # Mejor como int para MySQL
+    is_staff = int(request.user.is_staff)
+
+    search = request.GET.get('q', '').strip()
+    page = int(request.GET.get('page', 1))
+
+    limit = 20
+    offset = (page - 1) * limit
 
     with connection.cursor() as cursor:
         cursor.execute(
-            "CALL l_consultar_pedidos(%s, %s)",
-            [idvend, is_staff]
+            "CALL l_consultar_pedidos(%s, %s, %s, %s, %s)",
+            [idvend, is_staff, search, limit, offset]
         )
+
+        # Primer resultset: total
+        total = utils.dictfetchall(cursor)[0]['total']
+
+        # Segundo resultset: pedidos paginados
+        cursor.nextset()
         pedidos = utils.dictfetchall(cursor)
 
-    return render(
-        request,
-        'consultar_pedidos.html',
-        {
-            'pedidos': pedidos,
-            'es_staff': is_staff 
-        }
-    )
+    total_pages = (total + limit - 1) // limit
 
+    rango = range(max(1, page - 2), min(total_pages + 1, page + 3))
+
+    return render(request, 'consultar_pedidos.html', {
+        'pedidos': pedidos,
+        'page': page,
+        'total_pages': total_pages,
+        'rango': rango,
+        'search': search,
+        'es_staff': is_staff
+    })
+
+@login_required
+def consultar_pedidos_ajax(request):
+    idvend = request.user.idvend
+    is_staff = int(request.user.is_staff)
+
+    search = request.GET.get('q', '').strip()
+    page = int(request.GET.get('page', 1))
+
+    limit = 20
+    offset = (page - 1) * limit
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "CALL l_consultar_pedidos(%s, %s, %s, %s, %s)",
+            [idvend, is_staff, search, limit, offset]
+        )
+
+        total = utils.dictfetchall(cursor)[0]['total']
+        cursor.nextset()
+        pedidos = utils.dictfetchall(cursor)
+
+    total_pages = (total + limit - 1) // limit
+
+    return JsonResponse({
+        "pedidos": pedidos,
+        "page": page,
+        "total_pages": total_pages
+    })
 
 @login_required
 def pedidos_detalles(request, idpedido):

@@ -7,8 +7,13 @@
 
     <!-- Formulario de búsqueda -->
     <form method="get" class="d-flex justify-content-center gap-2">
-        <input type="text" id="searchInput" class="form-control small-input input-black w-50" placeholder="Buscar productos..."
-            style="height: 30px;">
+        <input type="text"
+                id="searchInput"
+                name="search"
+                value="{{ search }}"
+                class="form-control small-input input-black w-50"
+                placeholder="Buscar productos..."
+                style="height: 30px;">
         <button class="btn btn-primary btn-sm" type="submit" style="height: 30px;"><i class="bi bi-search"></i></button>
     </form>
 
@@ -42,6 +47,41 @@
                 {% endfor %}
             </tbody>
         </table>
+       
+    </div>
+    <div class="d-flex justify-content-center mt-3">
+
+        {% if page > 1 %}
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page=1&search={{ search }}">«</a>
+
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page={{ page|add:'-1' }}&search={{ search }}">
+            Anterior
+            </a>
+        {% endif %}
+
+        {% for num in rango %}
+            {% if num == page %}
+                <span class="btn btn-sm btn-primary mx-1">{{ num }}</span>
+            {% else %}
+                <a class="btn btn-sm btn-outline-primary mx-1"
+                href="?page={{ num }}&search={{ search }}">
+                {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page={{ page|add:'1' }}&search={{ search }}">
+            Siguiente
+            </a>
+
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page={{ total_pages }}&search={{ search }}">»</a>
+        {% endif %}
+
     </div>
 
     <!-- Mensaje de búsqueda -->
@@ -90,6 +130,58 @@
             }
         }
     });
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+    const searchInput = document.getElementById("searchInput");
+    const tableBody = document.querySelector("#clienteTable tbody");
+
+    let timeout = null;
+
+    searchInput.addEventListener("keyup", function () {
+
+        clearTimeout(timeout);
+
+        timeout = setTimeout(() => {
+
+            const searchValue = searchInput.value;
+
+            fetch(`/catalogos/productos/ajax/?search=${searchValue}`)
+                .then(response => response.json())
+                .then(data => {
+
+                    tableBody.innerHTML = "";
+
+                    if (data.productos.length === 0) {
+                        tableBody.innerHTML =
+                            `<tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    No se encontraron resultados.
+                                </td>
+                            </tr>`;
+                        return;
+                    }
+
+                    data.productos.forEach(prod => {
+                        tableBody.innerHTML += `
+                            <tr>
+                                <td>${prod.codigo}</td>
+                                <td>${prod.nombre}</td>
+                                <td>${prod.presentacion}</td>
+                                <td>${prod.linea} - ${prod.descripcion}</td>
+                                <td>${prod.iva}</td>
+                                <td>${prod.publico}</td>
+                            </tr>
+                        `;
+                    });
+
+                });
+
+        }, 300);
+
+    });
+
+});
 </script>
 
 {% endblock %}

@@ -7,8 +7,13 @@
 
     <!-- Formulario de búsqueda -->
     <form method="get" class="d-flex justify-content-center gap-2">
-        <input type="text" id="searchInput" class="form-control small-input input-black w-50" placeholder="Buscar el cliente..."
-            style="height: 30px;">
+        <input type="text"
+                id="searchInput"
+                name="search"
+                value="{{ search }}"
+                class="form-control small-input input-black w-50"
+                placeholder="Buscar el cliente..."
+                style="height: 30px;">
         <button class="btn btn-primary btn-sm" type="submit" style="height: 30px;"><i class="bi bi-search"></i></button>
     </form>
 
@@ -41,6 +46,63 @@
             </tbody>
         </table>
     </div>
+    <div class="d-flex justify-content-center mt-3">
+
+        {% if page > 1 %}
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page=1&search={{ search }}">«</a>
+
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page={{ page|add:'-1' }}&search={{ search }}">
+                Anterior
+            </a>
+        {% endif %}
+
+        {% for num in rango %}
+            {% if num == page %}
+                <span class="btn btn-sm btn-primary mx-1">{{ num }}</span>
+            {% else %}
+                <a class="btn btn-sm btn-outline-primary mx-1"
+                href="?page={{ num }}&search={{ search }}">
+                    {{ num }}
+                </a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page={{ page|add:'1' }}&search={{ search }}">
+                Siguiente
+            </a>
+
+            <a class="btn btn-sm btn-outline-primary mx-1"
+            href="?page={{ total_pages }}&search={{ search }}">»</a>
+        {% endif %}
+
+    </div>
+
+    <!-- Modal Confirmación Pedido -->
+    <div class="modal fade" id="confirmPedidoModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Confirmar Pedido</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p id="modalTexto"></p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" id="confirmarPedidoBtn">
+                        Sí, continuar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Mensaje de búsqueda -->
     {% if list_cliente %}
@@ -59,24 +121,33 @@
         const tableRows = document.querySelectorAll("#clienteTable tbody tr");
 
         searchInput.addEventListener("keyup", function () {
-            const filter = searchInput.value.toLowerCase();
-            tableRows.forEach(row => {
-                const rowText = row.textContent.toLowerCase();
-                row.style.display = rowText.includes(filter) ? "" : "none";
+                    const filter = searchInput.value.toLowerCase();
+                    tableRows.forEach(row => {
+                        const rowText = row.textContent.toLowerCase();
+                        row.style.display = rowText.includes(filter) ? "" : "none";
+                    });
+                });
+            });
+
+    let clienteSeleccionado = null;
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const table = document.getElementById("clienteTable");
+
+            table.addEventListener("click", function (event) {
+                const row = event.target.closest("tr");
+                if (!row || !row.dataset.idcliente) return;
+
+                clienteSeleccionado = row.dataset.idcliente;
+                const nombreCliente = row.children[2].textContent;
+
+                document.getElementById("modalTexto").innerHTML =
+                    `¿Quieres realizar un pedido para el cliente <strong>${nombreCliente}</strong>?`;
+
+                const modal = new bootstrap.Modal(document.getElementById("confirmPedidoModal"));
+                modal.show();
             });
         });
-
-        // 🚀 Redirección directa al seleccionar un cliente
-        table.addEventListener("click", function (event) {
-            const row = event.target.closest("tr");
-            if (!row || !row.dataset.idcliente) return;
-
-            const idcliente = row.dataset.idcliente;
-
-            // Redirigir inmediatamente
-            window.location.href = `/pedidos/captura_propuesta/${idcliente}/`;
-        });
-    });
 
     // Atajo de teclado ALT + N
     document.addEventListener("keydown", function (event) {
@@ -87,6 +158,65 @@
                 window.location.href = btn.href;
             }
         }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const searchInput = document.getElementById("searchInput");
+        const tableBody = document.querySelector("#clienteTable tbody");
+
+        let timeout = null;
+
+        searchInput.addEventListener("keyup", function () {
+
+            clearTimeout(timeout);
+
+            timeout = setTimeout(() => {
+
+                const searchValue = searchInput.value;
+
+                fetch(`/catalogos/clientes/ajax/?search=${searchValue}`)
+                    .then(response => response.json())
+                    .then(data => {
+
+                        tableBody.innerHTML = "";
+
+                        if (data.clientes.length === 0) {
+                            tableBody.innerHTML =
+                                `<tr>
+                                    <td colspan="5" class="text-center text-muted">
+                                        No se encontraron resultados.
+                                    </td>
+                                </tr>`;
+                            return;
+                        }
+
+                        data.clientes.forEach(cli => {
+                            tableBody.innerHTML += `
+                                <tr data-idcliente="${cli.idcliente}">
+                                    <td>${cli.idvend}</td>
+                                    <td>${cli.idcliente}</td>
+                                    <td>${cli.razon_social}</td>
+                                    <td>${cli.municipio}, ${cli.estado}</td>
+                                    <td>${cli.ruta}</td>
+                                </tr>
+                            `;
+                        });
+
+                    });
+
+            }, 300);
+
+        });
+
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("confirmarPedidoBtn").addEventListener("click", function () {
+            if (clienteSeleccionado) {
+                window.location.href = `/pedidos/captura_propuesta/${clienteSeleccionado}/`;
+            }
+        });
     });
 </script>
 

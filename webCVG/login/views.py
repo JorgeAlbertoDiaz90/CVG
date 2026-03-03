@@ -60,8 +60,25 @@ def signin(request):
                 'error': 'El usuario o la contraseña son incorrectas.'
             })
         else:
+            from .models import UsuarioSesion
+            from django.contrib.sessions.models import Session
+
             login(request, user)
-            return redirect('menu')
+
+        # Eliminar sesión anterior (si existe)
+        try:
+            registro = UsuarioSesion.objects.get(user=user)
+            Session.objects.filter(session_key=registro.session_key).delete()
+        except UsuarioSesion.DoesNotExist:
+            pass
+
+        # Guardar nueva sesión
+        UsuarioSesion.objects.update_or_create(
+            user=user,
+            defaults={'session_key': request.session.session_key}
+        )
+
+        return redirect('menu')
 
 
 @login_required

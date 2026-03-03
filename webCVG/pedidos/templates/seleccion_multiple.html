@@ -178,8 +178,20 @@ function money_es(value) {
     });
 }
 
+// RESALTA EL TEXTO BUSCADO
+function resaltar(texto, busqueda) {
+    if (!busqueda) return texto;
+
+    const regex = new RegExp(`(${busqueda})`, "ig");
+    return texto.replace(regex, `<mark>$1</mark>`);
+}
+
+const idev = "{{ idev }}";
+
 function cargarProductos(query = "") {
-    fetch("{% url 'buscar_productos' %}?q=" + encodeURIComponent(query))
+    fetch("{% url 'buscar_productos' %}?q=" 
+        + encodeURIComponent(query)
+        + "&idev=" + idev)
         .then(r => r.json())
         .then(data => {
 
@@ -206,18 +218,35 @@ function cargarProductos(query = "") {
                         <input class="form-check-input"
                             type="checkbox"
                             data-codigo="${p.codigo}"
+                            data-bon="${p.bon}"
+                            data-d1="${p.d1}"
+                            data-d2="${p.d2}"
+                            data-publico="${p.publico}"
+                            data-nombre="${p.nombre}"
+                            data-descripcion="${p.descripcion}"
+                            data-linea="${p.linea}"
                             ${checked}
                             onchange="toggleProducto(this)">
 
-                        <!-- TEXTO -->
-                        <div class="producto-texto producto-linea flex-grow-1">
-                            <span class="txt-codigo">${p.codigo}</span>
-                            <span class="txt-sep">•</span>
-                            <span class="txt-nombre">${p.nombre}</span>
-                            <span class="txt-extra">
-                                (${p.presentacion || "—"} | ${p.linea || "—"})
-                            </span>
+                        <div class="producto-texto flex-grow-1">
+
+                            <!-- Renglón 1 -->
+                            <div class="producto-linea-1">
+                                <span class="txt-codigo">${resaltar(p.codigo, query)}</span>
+                                <span class="txt-sep">•</span>
+                                <span class="txt-nombre">${resaltar(p.nombre, query)}</span>
+                            </div>
+
+                            <!-- Renglón 2 -->
+                            <div class="producto-linea-2">
+                                <span class="txt-descripcion">${resaltar(p.descripcion, query)}</span>
+                                <span class="txt-extra">
+                                    (${p.presentacion || "—"} | ${p.linea || "—"})
+                                </span>
+                            </div>
+
                         </div>
+
 
                         <!-- PRECIO -->
                         <span class="txt-precio ms-2">
@@ -267,7 +296,14 @@ function toggleProducto(checkbox) {
 
     if (checkbox.checked) {
         seleccionados[codigo] = {
-            cantidad: cantidadInput.value || 1
+            cantidad: cantidadInput.value || 1,
+            bon: parseFloat(checkbox.dataset.bon || 0),
+            d1: parseFloat(checkbox.dataset.d1 || 0),
+            d2: parseFloat(checkbox.dataset.d2 || 0),
+            publico: parseFloat(checkbox.dataset.publico || 0),
+            nombre: checkbox.dataset.nombre,
+            descripcion: checkbox.dataset.descripcion,
+            linea: checkbox.dataset.linea
         };
         cantidadInput.style.display = "block";
     } else {
@@ -291,7 +327,14 @@ function finalizarSeleccion() {
     for (const codigo in seleccionados) {
         productos.push({
             codigo: codigo,
-            cantidad: seleccionados[codigo].cantidad
+            cantidad: seleccionados[codigo].cantidad,
+            bon: seleccionados[codigo].bon,
+            d1: seleccionados[codigo].d1,
+            d2: seleccionados[codigo].d2,
+            precio_unitario: seleccionados[codigo].publico,
+            nombre: seleccionados[codigo].nombre,
+            descripcion: seleccionados[codigo].descripcion,
+            linea: seleccionados[codigo].linea
         });
     }
 
@@ -303,6 +346,9 @@ function finalizarSeleccion() {
         },
         body: JSON.stringify({
             id_pedido: document.getElementById("id_pedido").value,
+            evento: idev,              // <-- IMPORTANTE
+            observaciones: "",
+            total: 0,
             productos: productos
         })
     }).then(() => {
@@ -312,6 +358,11 @@ function finalizarSeleccion() {
 }
 
 // AQUI SE TODO LO NECESARIO PARA EL MODAL DE HISTORICO DE CADA PRODUCTO
+
+function formatearFecha(fechaISO) {
+    let f = new Date(fechaISO);
+    return f.toLocaleString('es-MX');
+}
 
 const modalHistorico = new bootstrap.Modal(
     document.getElementById("modalHistoricoProducto")
@@ -374,7 +425,7 @@ function verHistorico(event, codigo) {
             data.forEach(r => {
                 html += `
                     <tr>
-                        <td>${r.fecha}</td>
+                        <td>${formatearFecha(r.fecha)}</td>
                         <td>${r.pedido}</td>
                         <td>$${money_es(r.precio)}</td>
                         <td>${r.cantidad}</td>

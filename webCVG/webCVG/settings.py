@@ -54,6 +54,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'login.middleware.SessionIdleTimeout',
+    'login.middleware.UnaSesionPorUsuarioMiddleware',
 ]
 
 ROOT_URLCONF = 'webCVG.urls'
@@ -79,6 +81,7 @@ WSGI_APPLICATION = 'webCVG.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+
 
 
 # Password validation
@@ -135,3 +138,15 @@ AUTH_USER_MODEL = 'user.User'
 LOGIN_URL = 'signin'
 LOGIN_REDIRECT_URL = 'menu'
 LOGOUT_REDIRECT_URL = 'home'
+
+# La sesión se elimina al cerrar el navegador
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Tiempo de vida de la sesión (en segundos)
+SESSION_COOKIE_AGE = 2700  # 45 minutos
+
+# Renueva el tiempo cada vez que el usuario hace una petición
+SESSION_SAVE_EVERY_REQUEST = True
+
+# La sesion cerrara por inactividad
+SESSION_IDLE_TIMEOUT = 1800 # 30 min inactividad

@@ -7,10 +7,18 @@
     <h4 class="mb-3 text-center">Consulta de Pedidos</h4>
 
     <!-- Formulario de búsqueda -->
-    <form method="get" class="d-flex justify-content-center gap-2">
-        <input type="text" id="searchInput" class="form-control small-input input-black w-50" placeholder="Buscar el cliente..."
+    <form method="get" id="searchForm" class="d-flex justify-content-center gap-2">
+        <input type="text"
+            id="searchInput"
+            name="q"
+            value="{{ search }}"
+            class="form-control small-input input-black w-50"
+            placeholder="Buscar cliente, folio o factura..."
             style="height: 30px;">
-        <button class="btn btn-primary btn-sm" type="submit" style="height: 30px;"><i class="bi bi-search"></i></button>
+            
+        <button class="btn btn-primary btn-sm" type="submit" style="height: 30px;">
+            <i class="bi bi-search"></i>
+        </button>
     </form>
 
     <!-- Tabla de choferes -->
@@ -67,7 +75,7 @@
                     {% endif %}
                     <td style="text-align: right;">{{ pedido.total|money_es }} </td>
                     <td style="text-align: right;">{{ pedido.total_venta|money_es }}</td>
-                    <td style="text-align: right;">{{ pedidos.saldo_total|money_es }}</td>
+                    <td style="text-align: right;">{{ pedido.saldo_venta|money_es }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -76,7 +84,42 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+        </div>
+        <div class="d-flex justify-content-center mt-3">
+
+            {% if page > 1 %}
+                <a class="btn btn-sm btn-outline-primary mx-1"
+                href="?page=1&q={{ search }}">«</a>
+
+                <a class="btn btn-sm btn-outline-primary mx-1"
+                href="?page={{ page|add:'-1' }}&q={{ search }}">
+                    Anterior
+                </a>
+            {% endif %}
+
+            {% for num in rango %}
+                {% if num == page %}
+                    <span class="btn btn-sm btn-primary mx-1">{{ num }}</span>
+                {% else %}
+                    <a class="btn btn-sm btn-outline-primary mx-1"
+                    href="?page={{ num }}&q={{ search }}">
+                        {{ num }}
+                    </a>
+                {% endif %}
+            {% endfor %}
+
+            {% if page < total_pages %}
+                <a class="btn btn-sm btn-outline-primary mx-1"
+                href="?page={{ page|add:'1' }}&q={{ search }}">
+                    Siguiente
+                </a>
+
+                <a class="btn btn-sm btn-outline-primary mx-1"
+                href="?page={{ total_pages }}&q={{ search }}">»</a>
+            {% endif %}
+
+        </div>
+    
 
     <!-- Mensaje de búsqueda -->
     {% if list_pedidos %}
@@ -195,21 +238,6 @@
 document.addEventListener("DOMContentLoaded", function () {
 
     /* =========================
-       FILTRO DE BÚSQUEDA
-    ========================== */
-    const searchInput = document.getElementById("searchInput");
-    const tableRows = document.querySelectorAll("#clienteTable tbody tr");
-
-    searchInput.addEventListener("keyup", function () {
-        const filter = searchInput.value.toLowerCase();
-        tableRows.forEach(row => {
-            const rowText = row.textContent.toLowerCase();
-            row.style.display = rowText.includes(filter) ? "" : "none";
-        });
-    });
-
-
-    /* =========================
        MODAL PRODUCTOS PEDIDO
     ========================== */
 
@@ -223,24 +251,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function formatearFechaES(fechaStr) {
-        if (!fechaStr) return "";
-
-        // Convierte "YYYY-MM-DD HH:MM:SS" → Date
-        const fecha = new Date(fechaStr.replace(" ", "T"));
-
-        return fecha.toLocaleDateString("es-MX", {
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-        }) + " a las " +
-        fecha.toLocaleTimeString("es-MX", {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit"
-        });
-    }
-
     const modalElement = document.getElementById("modalProductos");
     const modal = new bootstrap.Modal(modalElement);
 
@@ -250,11 +260,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const observacionesPedido = document.getElementById("observacionesPedido");
     const totalPedidoEl = document.getElementById("totalPedido");
 
-    document.querySelectorAll(".pedido-row").forEach(row => {
+    document.addEventListener("click", function (e) {
 
-        row.addEventListener("click", function () {
+            const row = e.target.closest(".pedido-row");
+            if (!row) return;
 
-            const idpedido = this.dataset.idpedido;
+            const idpedido = row.dataset.idpedido;
             if (!idpedido) return;
 
             productosBody.innerHTML = `
@@ -271,7 +282,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     let totalPedido = 0;
                     let totalAutorizado = 0;
 
-
                     if (!data || data.length === 0) {
                         productosBody.innerHTML = `
                             <div class="text-center text-muted">
@@ -281,15 +291,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         return;
                     }
 
-                    // HEADER DEL MODAL
                     modalCliente.innerText = data[0].razon_social || "Cliente";
                     modalInfoPedido.innerText =
                         `${formatearFechaES(data[0].fecha)} ${data[0].vendedor || ""}`;
 
-                    observacionesPedido.value =
-                        data[0].observaciones || "";
-                        
-                    // PRODUCTOS
+                    observacionesPedido.value = data[0].observaciones || "";
+
                     data.forEach(p => {
 
                         const impPedido = Number(p.importe);
@@ -300,15 +307,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         productosBody.innerHTML += `
                             <div class="border rounded p-3 mb-3 bg-light">
-
                                 <div class="fw-bold">
                                     ${p.codigo || ''} | 
                                     ${p.nombre || ''} | 
                                     ${p.presentacion || ''} | 
                                     ${p.descripcion || ''} | 
                                     ${p.linea || ''}
-
                                 </div>
+                            
                                 
                                 <div class="row mt-2">
                                     <div class="row">
@@ -355,7 +361,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     <div class="col">
                                         <small>Subtotal</small>
-                                        <input class="form-control form-control-sm text-center fw-bold"
+                                        <input class="form-control form-control-sm text-center"
                                                value="${money_es(p.subtotal || 0)}" readonly>
                                     </div>
 
@@ -398,7 +404,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     </div>
 
                                     <div class="col">
-                                        <input class="form-control form-control-sm text-center fw-bold"
+                                        <input class="form-control form-control-sm text-center"
                                                value="${money_es(p.subtotal_aprobado || 0)}" readonly>
                                     </div>
 
@@ -420,10 +426,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         `$${money_es(data[0].total_iva)}`;
 
                     document.getElementById("totalD1").innerText =
-                        `$${data[0].d1_venta}`;
+                        `$${data[0].total_d1}`;
 
                     document.getElementById("totalD2").innerText =
-                        `$${data[0].d2_venta}`;
+                        `$${data[0].total_d2}`;
 
                     document.getElementById("importePedido").innerText =
                         `$${money_es(totalPedido)}`;
@@ -443,12 +449,125 @@ document.addEventListener("DOMContentLoaded", function () {
                     `;
                 });
 
-            modal.show();
         });
 
     });
 
-});
+    /* =========================
+    LIVE SEARCH CON DELAY
+    ========================== */
+
+    function formatearFechaES(fechaStr) {
+        if (!fechaStr) return "";
+
+        // Convierte "YYYY-MM-DD HH:MM:SS" → Date
+        const fecha = new Date(fechaStr.replace(" ", "T"));
+
+        return fecha.toLocaleDateString("es-MX", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+        }) + " a las " +
+        fecha.toLocaleTimeString("es-MX", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+    }
+
+    function getStatusBadge(status) {
+
+        let clase = "";
+
+        switch (status) {
+            case "ENVIADO":
+                clase = "status-enviado";
+                break;
+
+            case "RECIBIDO":
+                clase = "status-recibido";
+                break;
+
+            case "VENTA":
+                clase = "status-venta";
+                break;
+
+            case "CANCELADO":
+                clase = "status-cancelado";
+                break;
+
+            default:
+                clase = "";
+        }
+
+        return `
+            <span class="status-badge ${clase}">
+                <span class="status-dot"></span>
+                ${status}
+            </span>
+        `;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const searchInput = document.getElementById("searchInput");
+        const tableBody = document.querySelector("#clienteTable tbody");
+
+        let timeout = null;
+
+        searchInput.addEventListener("keyup", function () {
+
+            clearTimeout(timeout);
+
+            timeout = setTimeout(() => {
+
+                const searchValue = searchInput.value;
+
+                fetch(`/pedidos/consultar_pedidos/ajax/?q=${searchValue}`)
+                    .then(response => response.json())
+                    .then(data => {
+
+                        tableBody.innerHTML = "";
+
+                        if (data.pedidos.length === 0) {
+                            tableBody.innerHTML =
+                                `<tr>
+                                    <td colspan="6" class="text-center text-muted">
+                                        No se encontraron resultados.
+                                    </td>
+                                </tr>`;
+                            return;
+                        }
+
+                        data.pedidos.forEach(ped => {
+                            tableBody.innerHTML += `
+                                <tr class="text-center size_body pedido-row" data-idpedido="${ped.id}">
+                                    <td>${formatearFechaES(ped.fecha)}</td>
+                                    <td>${ped.folio_venta}</td>
+                                    <td>${ped.id}</td>
+                                    <td>${getStatusBadge(ped.status)}</td>
+                                    <td>${ped.folio_factura}</td>
+                                    <td>${ped.idcliente}</td>
+                                    <td style="text-align:left;">${ped.razon_social}</td>
+                                    <td>${ped.municipio}</td>
+                                    <td>${ped.estado}</td>
+                                    <td>${ped.ruta}</td>
+                                    <td>${ped.idvend}</td>
+                                    ${ped.vendedor ? `<td>${ped.vendedor}</td>` : ``}
+                                    <td style="text-align:right;">${ped.total}</td>
+                                    <td style="text-align:right;">${ped.total_venta}</td>
+                                    <td style="text-align:right;">${ped.saldo_venta}</td>
+                                </tr>
+                            `;
+                        });
+
+                    });
+
+            }, 300);
+
+        });
+
+    });
 </script>
 
 
