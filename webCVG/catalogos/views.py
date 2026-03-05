@@ -13,7 +13,7 @@ def catalogo_productos(request):
     search = request.GET.get('search', '').strip()
     page = int(request.GET.get('page', 1))
 
-    limit = 20
+    limit = 22
     offset = (page - 1) * limit
 
     with connection.cursor() as cursor:
@@ -48,7 +48,7 @@ def catalogo_productos_ajax(request):
     search = request.GET.get('search', '').strip()
     page = int(request.GET.get('page', 1))
 
-    limit = 20
+    limit = 22
     offset = (page - 1) * limit
 
     with connection.cursor() as cursor:
@@ -123,7 +123,7 @@ def catalogo_clientes(request):
     is_staff = request.user.is_staff
     idvend = request.user.idvend
 
-    search = request.GET.get('search', '').strip()
+    search = request.GET.get('search', ' ').strip()
     page = int(request.GET.get('page', 1))
 
     limit = 20

@@ -3,7 +3,9 @@ from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, logout, authenticate, get_user_model
 from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
-from django.http import Http404
+from .models import UsuarioSesion
+from django.contrib.sessions.models import Session
+from django.utils import timezone
 
 User = get_user_model()   # ← IMPORTANTE
 
@@ -38,47 +40,61 @@ def signup(request):
 
 
 def signout(request):
+    if request.user.is_authenticated:
+        UsuarioSesion.objects.filter(user=request.user).delete()
+
     logout(request)
     return redirect('home')
 
 
 def signin(request):
+
     if request.method == 'GET':
         return render(request, 'signin.html', {
             'form': AuthenticationForm
         })
-    else:
-        user = authenticate(
-            request,
-            username=request.POST.get('username'),
-            password=request.POST.get('password')
-        )
 
-        if user is None:
-            return render(request, 'signin.html', {
-                'form': AuthenticationForm,
-                'error': 'El usuario o la contraseña son incorrectas.'
-            })
-        else:
-            from .models import UsuarioSesion
-            from django.contrib.sessions.models import Session
+    # POST
+    user = authenticate(
+        request,
+        username=request.POST.get('username'),
+        password=request.POST.get('password')
+    )
 
-            login(request, user)
+    if user is None:
+        return render(request, 'signin.html', {
+            'form': AuthenticationForm,
+            'error': 'El usuario o la contraseña son incorrectas.'
+        })
 
-        # Eliminar sesión anterior (si existe)
-        try:
-            registro = UsuarioSesion.objects.get(user=user)
-            Session.objects.filter(session_key=registro.session_key).delete()
-        except UsuarioSesion.DoesNotExist:
-            pass
+    # Verificar si ya existe una sesión registrada
+    try:
+        registro = UsuarioSesion.objects.get(user=user)
 
-        # Guardar nueva sesión
-        UsuarioSesion.objects.update_or_create(
-            user=user,
-            defaults={'session_key': request.session.session_key}
-        )
+        # Validar si la sesión aún existe y no está expirada
+        sesion_activa = Session.objects.filter(
+            session_key=registro.session_key,
+            expire_date__gt=timezone.now()
+        ).first()
 
-        return redirect('menu')
+        if sesion_activa:
+            sesion_activa.delete()
+
+        registro.delete()
+
+    except UsuarioSesion.DoesNotExist:
+        pass
+
+    # Iniciar nueva sesión
+    login(request, user)
+
+    # Guardar nueva sesión
+    UsuarioSesion.objects.update_or_create(
+        user=user,
+        defaults={'session_key': request.session.session_key}
+    )
+
+    return redirect('menu')
 
 
 @login_required

@@ -77,7 +77,6 @@ def lista_clientes_ajax(request):
 
 # EN ESTE APARTADO SE CAPTURAN LOS DATOS PRINCIPALES DEL CLIENTE UNA VEZ SELECCIONADO EN EL PASO ANTERIOR Y SE REALIZA EL LLENADO AUTOMATICO
 
-from django.utils import timezone
 
 @login_required
 def captura_propuesta(request, idcliente):

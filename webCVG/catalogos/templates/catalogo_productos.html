@@ -83,55 +83,10 @@
         {% endif %}
 
     </div>
-
-    <!-- Mensaje de búsqueda -->
-    {% if list_cliente %}
-    <div class="alert alert-info text-center mt-3">
-        Mostrando resultados para: <strong>{{ list_cliente }}</strong>
-    </div>
-    {% endif %}
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const table = document.getElementById("clienteTable");
-
-        // Filtrado de búsqueda
-        const searchInput = document.getElementById("searchInput");
-        const tableRows = document.querySelectorAll("#clienteTable tbody tr");
-
-        searchInput.addEventListener("keyup", function () {
-            const filter = searchInput.value.toLowerCase();
-            tableRows.forEach(row => {
-                const rowText = row.textContent.toLowerCase();
-                row.style.display = rowText.includes(filter) ? "" : "none";
-            });
-        });
-
-        // 🚀 Redirección directa al seleccionar un cliente
-        table.addEventListener("click", function (event) {
-            const row = event.target.closest("tr");
-            if (!row || !row.dataset.idcliente) return;
-
-            const idcliente = row.dataset.idcliente;
-
-            // Redirigir inmediatamente
-            window.location.href = `/pedidos/captura_propuesta/${idcliente}/`;
-        });
-    });
-
-    // Atajo de teclado ALT + N
-    document.addEventListener("keydown", function (event) {
-        if (event.altKey && event.key.toLowerCase() === "n") {
-            event.preventDefault();
-            const btn = document.getElementById("btnCaptura");
-            if (btn) {
-                window.location.href = btn.href;
-            }
-        }
-    });
-
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
 
     const searchInput = document.getElementById("searchInput");
     const tableBody = document.querySelector("#clienteTable tbody");
